@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 
+use lib $ENV{HOME} . "/bin/";
+
 use File::Find;
 use XML::Simple;
 use Component;
