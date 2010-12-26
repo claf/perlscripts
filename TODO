@@ -1,3 +1,4 @@
 - Still need to add "CALLMINE" detection for a better dot file in fractal.pl
 script. For this purpose, parsing .fractal file is not enought, need to parse C
 files.
+- Add version number and '-v' option.
