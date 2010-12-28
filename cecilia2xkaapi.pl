@@ -3,6 +3,49 @@
 use strict;
 use warnings;
 
+##########################################################
+# Perl trim function to strip whitespace from a string : #
+# from http://www.somacon.com/p114.php                   #
+##########################################################
+
+# Declare the subroutines
+sub trim($);
+sub ltrim($);
+sub rtrim($);
+
+## Create a test string
+# my $string = "  \t  Hello world!   ";
+#
+## Here is how to output the trimmed text "Hello world!"
+# print trim($string)."\n";
+# print ltrim($string)."\n";
+# print rtrim($string)."\n";
+
+# Perl trim function to remove whitespace from the start and end of the string
+sub trim($)
+{
+  my $string = shift;
+  $string =~ s/^\s+//;
+  $string =~ s/\s+$//;
+  return $string;
+}
+# Left trim function to remove leading whitespace
+sub ltrim($)
+{
+  my $string = shift;
+  $string =~ s/^\s+//;
+  return $string;
+}
+# Right trim function to remove trailing whitespace
+sub rtrim($)
+{
+  my $string = shift;
+  $string =~ s/\s+$//;
+  return $string;
+}
+
+######################################
+
 my $header_file = "main.h";
 
 open(HEADER, ">$header_file") or die $!;
@@ -44,12 +87,17 @@ foreach my $file (@ARGV)
   while (my $line = <FILEHANDLER>)
   {
     # Suppress DECLARE_DATA :
+    # for perl parsing script, need to have this indentation for DECLARE_DATA :
+    # DECLARE_DATA {
+    #  ...
+    # }
     my $nb_cb = 0;
     if($line =~ /DECLARE_DATA\s*{/)
     {
       $nb_cb++;
       while(defined($line = <FILEHANDLER>) && $nb_cb != 0)
       {
+        
         if(my @arr = $line =~ /{/g)
         {
           $nb_cb += @arr;
@@ -58,6 +106,8 @@ foreach my $file (@ARGV)
         if(my @arr = $line =~ /}/g)
         {
           $nb_cb -= @arr;
+        } else {
+          printf FILEOUT ltrim($line) . "\n";
         }
       }
     }
