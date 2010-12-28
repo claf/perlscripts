@@ -2,3 +2,6 @@
 script. For this purpose, parsing .fractal file is not enought, need to parse C
 files.
 - Add version number and '-v' option.
+- Supress "DATA." string in case of instance variables for a component instance.
+- Better DECLARE_DATA management.
+- C comments detection.
