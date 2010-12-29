@@ -107,7 +107,7 @@ foreach my $file (@ARGV)
         {
           $nb_cb -= @arr;
         } else {
-          printf FILEOUT ltrim($line) . "\n";
+          printf FILEOUT "volatile " . ltrim($line) . "\n";
         }
       }
     }
