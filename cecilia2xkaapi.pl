@@ -86,7 +86,7 @@ foreach my $file (@ARGV)
 
   while (my $line = <FILEHANDLER>)
   {
-    # Suppress DECLARE_DATA :
+    # 1. Suppress DECLARE_DATA :
     # for perl parsing script, need to have this indentation for DECLARE_DATA :
     # DECLARE_DATA {
     #  ...
@@ -112,13 +112,13 @@ foreach my $file (@ARGV)
       }
     }
 
-    # Change included header :
+    # 2. Change included header :
     elsif($line =~ /#include <cecilia\.h>/)
     {
       print FILEOUT "\#include \"$header_file\"";
     }
 
-    # Method re-definition and header update :
+    # 3. Method re-definition and header update :
     elsif ($line =~ / METHOD\s*\(.*,\s*(.*)\)\s*\(\s*void\s*\*\s*_this\s*,*(.*)\)/)
     {
       my $function = $1;
@@ -147,8 +147,8 @@ foreach my $file (@ARGV)
       }
     }
 
-    # CALL becomes task :
-#    elsif ($line =~ /^\s*CALL\s*\([^,]*,\s*([^,]*),(.*)\)\s*;/)
+    # 4. CALL becomes task :
+    # elsif ($line =~ /^\s*CALL\s*\([^,]*,\s*([^,]*),(.*)\)\s*;/)
     elsif ($line =~ /^\s*CALL\s*\([^,]*,\s*(.*)\)\s*;/)
     {
       my @args = split (/,/, $1);
@@ -170,7 +170,7 @@ foreach my $file (@ARGV)
       print FILEOUT "  kaapi_thread_pushtask(thread);\n\n";
     }
 
-    # CALLMINE becomes task :
+    # 5. CALLMINE becomes task :
     elsif ($line =~ /^\s*CALLMINE\s*\([^,]*,\s*(.*)\)\s*;/)
     {
       my @args = split (/,/, $1);
@@ -192,9 +192,10 @@ foreach my $file (@ARGV)
       print FILEOUT "  kaapi_thread_pushtask(thread);\n\n";
     }
 
-    # Normal C line :
+    # 6. Normal C line :
     else
     {
+      $line =~ s/DATA\.//g;
       print FILEOUT $line;
     }
   }
