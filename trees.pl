@@ -24,6 +24,7 @@ my %depth;
 my %weight;
 my %children;
 
+my $tree = 0;
 
 while($current_depth < $depth) {
   %father = ();
@@ -34,22 +35,31 @@ while($current_depth < $depth) {
   $depth{0} = 0;
   $weight{0} = int rand(1+$work_max - $work_min) + $work_min;
 
+  my $only_father = 0;
   my @left_nodes = (0);
   while(@left_nodes) {
     $current_node = shift @left_nodes;
-    $current_depth = $depth{$current_node};
+    if ($current_depth != $depth{$current_node}) {
+      $current_depth = $depth{$current_node};
+      $only_father = $current_node;
+    } else {
+      
+    }
+
     last if $current_depth == $depth;
     my $children = int rand(1+$degree_max - $degree_min) + $degree_min;
     my @children;
     for(1..$children) {
       $last_node++;
-      $father{$last_node} = $current_node;
+      $father{$last_node} = $only_father;
       $weight{$last_node} = int rand(1+$work_max - $work_min) + $work_min;
       $depth{$last_node} = $current_depth + 1;
       push @left_nodes, $last_node;
       push @children, $last_node;
     }
-    $children{$current_node} = [ @children ];
+    foreach my $child (@children) {
+      push @{$children{$only_father}}, $child;
+    }
   }
 }
 
