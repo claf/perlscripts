@@ -3,3 +3,7 @@ install_script:
 	cp fractal.pl $(HOME)/bin/
 	cp Component.pm $(HOME)/bin/
 	cp trees.pl $(HOME)/bin/
+
+clean:
+	rm -fr *.dot
+	rm -fr *.png
