@@ -80,11 +80,11 @@ for(0..$last_node) {
 
 print DOTFILE "}\n";
 
-
 # General case :
 # TODO : use previous weight.
 
 for my $tree (1..$nb_trees) {
+  $current_depth = -1;
   while($current_depth < $depth) {
     %father = ();
     %depth = ();
