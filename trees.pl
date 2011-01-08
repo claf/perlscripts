@@ -130,3 +130,53 @@ for my $tree (1..$nb_trees) {
 
   print DOTFILE "}\n";
 }
+
+#Regular generation :
+
+$current_depth = -1;
+while($current_depth < $depth) {
+  %father = ();
+  %depth = ();
+  %weight = ();
+  %children = ();
+  $last_node = 0;
+  $depth{0} = 0;
+  $weight{0} = int rand(1+$work_max - $work_min) + $work_min;
+
+   my @left_nodes = (0);
+  while(@left_nodes) {
+    $current_node = shift @left_nodes;
+      $current_depth = $depth{$current_node};
+
+    last if $current_depth == $depth;
+    my $children = $degree_max/2;
+    my @children;
+    for(1..$children) {
+      $last_node++;
+      $father{$last_node} = $current_node;
+      $weight{$last_node} = int rand(1+$work_max - $work_min) + $work_min;
+      $depth{$last_node} = $current_depth + 1;
+      push @left_nodes, $last_node;
+      push @children, $last_node;
+    }
+    $children{$current_node} = [ @children ];
+  }
+}
+
+open(DOTFILE, ">$file_prefix" . "_" . ($nb_trees + 1) . ".dot") or die $!;
+
+print DOTFILE "graph {\n";
+
+for(0..$last_node) {
+  print DOTFILE " $_; /* $weight{$_} */\n";
+}
+
+for(0..$last_node) {
+  #print join(' ', @{$children{$_}}) if defined $children{$_};
+  foreach my $child (@{$children{$_}}) {
+    print DOTFILE " $_ -- $child;\n";
+  }
+}
+
+print DOTFILE "}\n";
+
