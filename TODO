@@ -5,3 +5,8 @@ files.
 - Supress "DATA." string in case of instance variables for a component instance.
 - Better DECLARE_DATA management.
 - C comments detection.
+
+TREES.PL :
+
+- find a good way to have the same amount of work for each depth regardless how
+many nodes there are.
