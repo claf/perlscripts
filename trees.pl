@@ -149,7 +149,7 @@ while($current_depth < $depth) {
       $current_depth = $depth{$current_node};
 
     last if $current_depth == $depth;
-    my $children = $degree_max/2;
+    my $children = ($degree_max + $degree_min + 1)/2;
     my @children;
     for(1..$children) {
       $last_node++;
