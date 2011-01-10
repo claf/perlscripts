@@ -68,13 +68,9 @@ open(DOTFILE, ">$file_prefix" . "_$tree.dot") or die $!;
 print DOTFILE "graph {\n";
 
 for(0..$last_node) {
-  print DOTFILE " $_; /* $weight{$_} */\n";
-}
-
-for(0..$last_node) {
   #print join(' ', @{$children{$_}}) if defined $children{$_};
   foreach my $child (@{$children{$_}}) {
-    print DOTFILE " $_ -- $child;\n";
+    print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
   }
 }
 
@@ -118,13 +114,9 @@ for my $tree (1..$nb_trees) {
   print DOTFILE "graph {\n";
 
   for(0..$last_node) {
-    print DOTFILE " $_; /* $weight{$_} */\n";
-  }
-
-  for(0..$last_node) {
     #print join(' ', @{$children{$_}}) if defined $children{$_};
     foreach my $child (@{$children{$_}}) {
-      print DOTFILE " $_ -- $child;\n";
+      print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
     }
   }
 
@@ -168,13 +160,9 @@ open(DOTFILE, ">$file_prefix" . "_" . ($nb_trees + 1) . ".dot") or die $!;
 print DOTFILE "graph {\n";
 
 for(0..$last_node) {
-  print DOTFILE " $_; /* $weight{$_} */\n";
-}
-
-for(0..$last_node) {
   #print join(' ', @{$children{$_}}) if defined $children{$_};
   foreach my $child (@{$children{$_}}) {
-    print DOTFILE " $_ -- $child;\n";
+    print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
   }
 }
 
