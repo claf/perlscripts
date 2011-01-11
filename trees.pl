@@ -3,6 +3,15 @@ use strict;
 use warnings;
 use Data::Dumper;
 
+# CALL :
+# for first and second tree :
+# ./trees.pl depth x work x x 1 file 
+# ./trees.pl 10    0 5    0 0 1 graphs
+# 
+# for general case :
+# ./trees.pl depth min_work max_work min_degree max_degree nb_trees file
+# ./trees.pl 10    1        20       0          5          20       graphs
+#
 my $depth = $ARGV[0];
 my $work_min = $ARGV[1];
 my $work_max = $ARGV[2];
@@ -18,67 +27,95 @@ if (!defined $file_prefix) {$file_prefix = "test";}
 
 my $current_node;
 my $last_node;
-my $current_depth = -1;
-
 my %father;
 my %depth;
 my %weight;
+my %total_weight;
 my %children;
 
+
 my $tree = 0;
+my $current_depth = -1;
 
-while($current_depth < $depth) {
-  %father = ();
-  %depth = ();
-  %weight = ();
-  %children = ();
-  $last_node = 0;
-  $depth{0} = 0;
-  $weight{0} = int rand(1+$work_max - $work_min) + $work_min;
-
-  my $only_father = 0;
-  my @left_nodes = (0);
-  while(@left_nodes) {
-    $current_node = shift @left_nodes;
-    if ($current_depth != $depth{$current_node}) {
-      $current_depth = $depth{$current_node};
-      $only_father = $current_node;
-      $children{$only_father} = [];
-    } else {
-      
-    }
-
-    last if $current_depth == $depth;
-    my $children = int rand(1+$degree_max - $degree_min) + $degree_min;
-    my @children;
-    for(1..$children) {
-      $last_node++;
-      $father{$last_node} = $only_father;
-      $weight{$last_node} = int rand(1+$work_max - $work_min) + $work_min;
-      $depth{$last_node} = $current_depth + 1;
-      push @left_nodes, $last_node;
-      push @children, $last_node;
-    }
-    foreach my $child (@children) {
-      push @{$children{$only_father}}, $child;
-    }
-  }
-}
-
-save_graph($file_prefix . "_$tree.dot", $last_node + 1, \%children, \%weight);
-
-#open(DOTFILE, ">$file_prefix" . "_$tree.dot") or die $!;
+## First tree:
 #
-#print DOTFILE "graph {\n";
+#for $tree (0..$nb_trees/2) {
+#  while($current_depth < $depth) {
+#    %father = ();
+#    %depth = ();
+#    %weight = ();
+#    %total_weight = ();
+#    %children = ();
+#    $last_node = 0;
+#    $depth{0} = 0;
+#    $weight{0} = $work_max; #int rand(1+$work_max - $work_min) + $work_min;
+#    $total_weight{0} = $work_max;
 #
-#for(0..$last_node) {
-#  #print join(' ', @{$children{$_}}) if defined $children{$_};
-#  foreach my $child (@{$children{$_}}) {
-#    print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
+#    my $only_father = 0;
+#    my @left_nodes = (0);
+#    while(@left_nodes) {
+#      $current_node = shift @left_nodes;
+#      if ($current_depth != $depth{$current_node}) {
+#        $current_depth = $depth{$current_node};
+#        $only_father = $current_node;
+#        $children{$only_father} = [];
+#      } else {
+#
+#      }
+#
+#      last if $current_depth == $depth;
+#      my $children = 2;#int rand(1+$degree_max - $degree_min) + $degree_min;
+#      my @children;
+#      for(1..$children) {
+#        $last_node++;
+#        $father{$last_node} = $only_father;
+#        $weight{$last_node} = $work_max; #int rand(1+$work_max - $work_min) + $work_min;
+#        $total_weight{$last_node} = $work_max * ($current_depth + 1);
+#        $depth{$last_node} = $current_depth + 1;
+#        push @left_nodes, $last_node;
+#        push @children, $last_node;
+#      }
+#      foreach my $child (@children) {
+#        push @{$children{$only_father}}, $child;
+#      }
+#    }
 #  }
+#  save_graph("FIRST_" . $file_prefix . "_$tree.dot", $last_node + 1, \%children, \%weight, \%total_weight);
 #}
 #
-#print DOTFILE "}\n";
+##Regular generation :
+#
+#$tree = $nb_trees + 1;
+#for $tree ((($nb_trees/2)+1)..$nb_trees) {
+#  $current_depth = -1;
+#  while($current_depth < $depth) {
+#    %father = ();
+#    %depth = ();
+#    %children = ();
+#    $last_node = 0;
+#    $depth{0} = 0;
+#
+#    my @left_nodes = (0);
+#    while(@left_nodes) {
+#      $current_node = shift @left_nodes;
+#      $current_depth = $depth{$current_node};
+#
+#      last if $current_depth == $depth;
+#      my $children = 2;#($degree_max + $degree_min + 1)/2;
+#      my @children;
+#      for(1..$children) {
+#        $last_node++;
+#        $father{$last_node} = $current_node;
+##      $weight{$last_node} = int rand(1+$work_max - $work_min) + $work_min;
+#        $depth{$last_node} = $current_depth + 1;
+#        push @left_nodes, $last_node;
+#        push @children, $last_node;
+#      }
+#      $children{$current_node} = [ @children ];
+#    }
+#  }
+#  save_graph("SECOND_" . $file_prefix . "_$tree.dot", $last_node + 1, \%children, \%weight, \%total_weight);
+#}
 
 # General case :
 # TODO : use previous weight.
@@ -89,10 +126,12 @@ for my $tree (1..$nb_trees) {
     %father = ();
     %depth = ();
     %weight = ();
+    %total_weight = ();
     %children = ();
     $last_node = 0;
     $depth{0} = 0;
     $weight{0} = int rand(1+$work_max - $work_min) + $work_min;
+    $total_weight{0} = $weight{0};
 
     my @left_nodes = (0);
     while(@left_nodes) {
@@ -105,6 +144,7 @@ for my $tree (1..$nb_trees) {
         $last_node++;
         $father{$last_node} = $current_node;
         $weight{$last_node} = int rand(1+$work_max - $work_min) + $work_min;
+        $total_weight{$last_node} = $weight{$last_node} + $total_weight{$current_node};
         $depth{$last_node} = $current_depth + 1;
         push @left_nodes, $last_node;
         push @children, $last_node;
@@ -113,84 +153,59 @@ for my $tree (1..$nb_trees) {
     }
   }
 
-  save_graph($file_prefix . "_$tree.dot", $last_node + 1, \%children, \%weight);
-
-#  open(DOTFILE, ">$file_prefix" . "_$tree.dot") or die $!;
-#  
-#  print DOTFILE "graph {\n";
-#
-#  for(0..$last_node) {
-#    #print join(' ', @{$children{$_}}) if defined $children{$_};
-#    foreach my $child (@{$children{$_}}) {
-#      print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
-#    }
-#  }
-#
-#  print DOTFILE "}\n";
+  save_graph("GENERAL_" . $file_prefix . "_$tree.dot", $last_node + 1, \%children, \%weight, \%total_weight);
 }
-
-#Regular generation :
-
-$current_depth = -1;
-while($current_depth < $depth) {
-  %father = ();
-  %depth = ();
-  %weight = ();
-  %children = ();
-  $last_node = 0;
-  $depth{0} = 0;
-  $weight{0} = int rand(1+$work_max - $work_min) + $work_min;
-
-   my @left_nodes = (0);
-  while(@left_nodes) {
-    $current_node = shift @left_nodes;
-      $current_depth = $depth{$current_node};
-
-    last if $current_depth == $depth;
-    my $children = ($degree_max + $degree_min + 1)/2;
-    my @children;
-    for(1..$children) {
-      $last_node++;
-      $father{$last_node} = $current_node;
-      $weight{$last_node} = int rand(1+$work_max - $work_min) + $work_min;
-      $depth{$last_node} = $current_depth + 1;
-      push @left_nodes, $last_node;
-      push @children, $last_node;
-    }
-    $children{$current_node} = [ @children ];
-  }
-}
-
-save_graph($file_prefix . "_$tree.dot", $last_node + 1, \%children, \%weight);
-
-#open(DOTFILE, ">$file_prefix" . "_" . ($nb_trees + 1) . ".dot") or die $!;
-#
-#print DOTFILE "graph {\n";
-#
-#for(0..$last_node) {
-#  #print join(' ', @{$children{$_}}) if defined $children{$_};
-#  foreach my $child (@{$children{$_}}) {
-#    print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
-#  }
-#}
-#
-#print DOTFILE "}\n";
 
 
 sub save_graph {
-  my ($filename, $nodes, $children_ref, $weights_ref) = @_;
+  my ($filename, $nodes, $children_ref, $weights_ref, $total_weights_ref) = @_;
 
   my @nodes = (keys %{$children_ref});
-  open(FILE, "> $filename");
+  open(FILE, "> $filename") or die $!;
   print FILE "$nodes\n";
+  my $D = 0;
+  my $W = 0;
   for my $node (0..$nodes-1) { #(@nodes) {
     if (defined @{$children_ref->{$node}}) {
       my @children = @{$children_ref->{$node}};
       print FILE "$node : $weights_ref->{$node} / " . scalar @children . ' ' . join(',', @children) . "\n";
     } else {
       print FILE "$node : $weights_ref->{$node} / 0\n";
+      if ($total_weights_ref->{$node} > $D) {
+        $D = $total_weights_ref->{$node};
+      }
     }
+    $W += $weights_ref->{$node};
   }
+
+
   close(FILE);
+
+  # Only keep trees having W/16 > 10xD :
+  if ((10*$D) >= int($W/16)) {
+    if (unlink($filename) != 0) {
+      print "$filename\t10 x D : " . (10*$D) . "\tW / 16 : " . int($W/16) . " :\tFile deleted successfully.\n";
+    } else {
+      print "ERROR : File was not deleted.\n";
+    }
+  } else {
+      print "$filename\t10 x D : " . (10*$D) . "\tW / 16 : " . int($W/16) . "\n";
+  }
 }
 
+sub save_graph_dot {
+  my ($filename, $nodes, $children_ref, $weights_ref) = @_;
+
+  open(DOTFILE, "> $filename") or die $!;
+
+  print DOTFILE "graph {\n";
+
+  for(0..$nodes-1) {
+    foreach my $child (@{$children_ref->{$_}}) {
+      print DOTFILE " $_ -- $child; /* $weights_ref->{$child} */\n";
+    }
+  }
+
+  print DOTFILE "}\n";
+  close (DOTFILE);
+}
