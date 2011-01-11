@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
+use Data::Dumper;
 
 my $depth = $ARGV[0];
 my $work_min = $ARGV[1];
@@ -42,6 +43,7 @@ while($current_depth < $depth) {
     if ($current_depth != $depth{$current_node}) {
       $current_depth = $depth{$current_node};
       $only_father = $current_node;
+      $children{$only_father} = [];
     } else {
       
     }
@@ -63,18 +65,20 @@ while($current_depth < $depth) {
   }
 }
 
-open(DOTFILE, ">$file_prefix" . "_$tree.dot") or die $!;
+save_graph($file_prefix . "_$tree.dot", $last_node + 1, \%children, \%weight);
 
-print DOTFILE "graph {\n";
-
-for(0..$last_node) {
-  #print join(' ', @{$children{$_}}) if defined $children{$_};
-  foreach my $child (@{$children{$_}}) {
-    print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
-  }
-}
-
-print DOTFILE "}\n";
+#open(DOTFILE, ">$file_prefix" . "_$tree.dot") or die $!;
+#
+#print DOTFILE "graph {\n";
+#
+#for(0..$last_node) {
+#  #print join(' ', @{$children{$_}}) if defined $children{$_};
+#  foreach my $child (@{$children{$_}}) {
+#    print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
+#  }
+#}
+#
+#print DOTFILE "}\n";
 
 # General case :
 # TODO : use previous weight.
@@ -109,18 +113,20 @@ for my $tree (1..$nb_trees) {
     }
   }
 
-  open(DOTFILE, ">$file_prefix" . "_$tree.dot") or die $!;
+  save_graph($file_prefix . "_$tree.dot", $last_node + 1, \%children, \%weight);
 
-  print DOTFILE "graph {\n";
-
-  for(0..$last_node) {
-    #print join(' ', @{$children{$_}}) if defined $children{$_};
-    foreach my $child (@{$children{$_}}) {
-      print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
-    }
-  }
-
-  print DOTFILE "}\n";
+#  open(DOTFILE, ">$file_prefix" . "_$tree.dot") or die $!;
+#  
+#  print DOTFILE "graph {\n";
+#
+#  for(0..$last_node) {
+#    #print join(' ', @{$children{$_}}) if defined $children{$_};
+#    foreach my $child (@{$children{$_}}) {
+#      print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
+#    }
+#  }
+#
+#  print DOTFILE "}\n";
 }
 
 #Regular generation :
@@ -155,16 +161,36 @@ while($current_depth < $depth) {
   }
 }
 
-open(DOTFILE, ">$file_prefix" . "_" . ($nb_trees + 1) . ".dot") or die $!;
+save_graph($file_prefix . "_$tree.dot", $last_node + 1, \%children, \%weight);
 
-print DOTFILE "graph {\n";
+#open(DOTFILE, ">$file_prefix" . "_" . ($nb_trees + 1) . ".dot") or die $!;
+#
+#print DOTFILE "graph {\n";
+#
+#for(0..$last_node) {
+#  #print join(' ', @{$children{$_}}) if defined $children{$_};
+#  foreach my $child (@{$children{$_}}) {
+#    print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
+#  }
+#}
+#
+#print DOTFILE "}\n";
 
-for(0..$last_node) {
-  #print join(' ', @{$children{$_}}) if defined $children{$_};
-  foreach my $child (@{$children{$_}}) {
-    print DOTFILE " $_ -- $child; /* $weight{$child} */\n";
+
+sub save_graph {
+  my ($filename, $nodes, $children_ref, $weights_ref) = @_;
+
+  my @nodes = (keys %{$children_ref});
+  open(FILE, "> $filename");
+  print FILE "$nodes\n";
+  for my $node (0..$nodes-1) { #(@nodes) {
+    if (defined @{$children_ref->{$node}}) {
+      my @children = @{$children_ref->{$node}};
+      print FILE "$node : $weights_ref->{$node} / " . scalar @children . ' ' . join(',', @children) . "\n";
+    } else {
+      print FILE "$node : $weights_ref->{$node} / 0\n";
+    }
   }
+  close(FILE);
 }
-
-print DOTFILE "}\n";
 
