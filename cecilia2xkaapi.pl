@@ -1,7 +1,37 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -s
 
 use strict;
 use warnings;
+use Getopt::Std;
+
+my $VER_NUM=0.8;
+
+sub print_usage()
+{
+  print "Usage : c2x output_directory file_1.c [file_2.c ...]\n";
+  exit ();
+}
+
+getopts("vh") or print_usage();
+our $opt_v;
+our $opt_h;
+
+if ($opt_v)
+{
+  print "$0 version $VER_NUM\n";
+  exit;
+}
+
+my $output_directory;
+
+if ((scalar @ARGV < 2) || $opt_h)
+{
+  print_usage();
+} else {
+  $output_directory = shift @ARGV;
+  print "Output directory set to : $output_directory\n";
+}
+
 
 ##########################################################
 # Perl trim function to strip whitespace from a string : #
@@ -48,6 +78,8 @@ sub rtrim($)
 
 my $header_file = "main.h";
 
+print "Generating main header : $header_file . . .";
+
 open(HEADER, ">$header_file") or die $!;
 
 print HEADER <<EOP;
@@ -77,10 +109,17 @@ foreach my $file (@ARGV)
   }
 }
 
+print " . . . done\n";
+
 open(HEADER, $header_file) or die $!;
+
+# Unique task name :
+my $taskId = 1;
 
 foreach my $file (@ARGV)
 {
+  print "Processing file $file to $output_directory/$file . . .";
+
   my @splitted_path = split (/\//, $file);
   my $file_out = $splitted_path[$#splitted_path];
   open(FILEHANDLER, $file) or die $!;
@@ -115,7 +154,7 @@ foreach my $file (@ARGV)
     }
 
     # 2. Change included header :
-    elsif($line =~ /#include <cecilia\.h>/)
+    elsif($line =~ /#include .cecilia\.h./)
     {
       print FILEOUT "\#include \"$header_file\"";
     }
@@ -156,11 +195,11 @@ foreach my $file (@ARGV)
       my @args = split (/,/, $1);
       my $function = $args[0];
 
-      print FILEOUT "  kaapi_task_t* task;\n";
+      print FILEOUT "  kaapi_task_t* task_$taskId;\n";
       print FILEOUT "  ".$function."_arg_t* ".$function."_args;\n";
-      print FILEOUT "  task = kaapi_thread_toptask(thread);\n";
-      print FILEOUT "  kaapi_task_initdfg( task, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
-      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task, ".$function."_arg_t );\n";
+      print FILEOUT "  task_$taskId = kaapi_thread_toptask(thread);\n";
+      print FILEOUT "  kaapi_task_initdfg( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
+      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
 
       for (my $i = 1; $i <= $#args; $i++)
       {
@@ -170,6 +209,9 @@ foreach my $file (@ARGV)
       }
 
       print FILEOUT "  kaapi_thread_pushtask(thread);\n\n";
+      
+      # Increment taskId to guarantee unique task name :
+      $taskId++;
     }
 
     # 5. CALLMINE becomes task :
@@ -178,11 +220,11 @@ foreach my $file (@ARGV)
       my @args = split (/,/, $1);
       my $function = $args[0];
 
-      print FILEOUT "  kaapi_task_t* task;\n";
+      print FILEOUT "  kaapi_task_t* task_$taskId;\n";
       print FILEOUT "  ".$function."_arg_t* ".$function."_args;\n";
-      print FILEOUT "  task = kaapi_thread_toptask(thread);\n";
-      print FILEOUT "  kaapi_task_initdfg( task, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
-      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task, ".$function."_arg_t );\n";
+      print FILEOUT "  task_$taskId = kaapi_thread_toptask(thread);\n";
+      print FILEOUT "  kaapi_task_initdfg( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
+      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
 
       for (my $i = 1; $i <= $#args; $i++)
       {
@@ -190,8 +232,11 @@ foreach my $file (@ARGV)
         my $var_name = &Var_Name_Func ($function, $i);
         print FILEOUT "  ".$function."_args->".$var_name." = $args[$i];\n";
       }
-
+       
       print FILEOUT "  kaapi_thread_pushtask(thread);\n\n";
+    
+      # Increment taskId to guarantee unique task name :
+      $taskId++;
     }
 
     # 6. Normal C line :
@@ -202,6 +247,7 @@ foreach my $file (@ARGV)
     }
   }
   print FILEOUT "\n";
+  print " . . . done\n";
 }
 
 sub Var_Name_Func {
@@ -350,16 +396,18 @@ my $main_file = "main.c";
 
 open(MAINFILE, ">$main_file") or die $!;
 
+print "Generating XKaapi entrypoing file : $main_file . . .";
+
 print MAINFILE <<EOP;
 /*
- * main.c
+ * $main_file
  *
  * Created by Christophe Laferriere on 22/11/10.
  * Copyright 2010 INRIA. All rights reserved.
  *
  */
 #include <kaapi.h>
-#include "main.h"
+#include "$header_file"
 
 int main (int argc, char** argv)
 {
@@ -394,4 +442,5 @@ int main (int argc, char** argv)
 }
 EOP
 
-    close (MAINFILE);
+close (MAINFILE);
+print " . . . done\n";
