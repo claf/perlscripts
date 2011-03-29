@@ -1,4 +1,4 @@
-#!/usr/bin/perl -s
+#!/usr/bin/perl
 
 use strict;
 use warnings;
@@ -12,11 +12,11 @@ sub print_usage()
   exit ();
 }
 
-getopts("vh") or print_usage();
-our $opt_v;
-our $opt_h;
+my %opts = ();
 
-if ($opt_v)
+getopts('vh',\%opts) or print_usage();
+
+if ($opts{v})
 {
   print "$0 version $VER_NUM\n";
   exit;
@@ -24,7 +24,7 @@ if ($opt_v)
 
 my $output_directory;
 
-if ((scalar @ARGV < 2) || $opt_h)
+if ((scalar @ARGV < 2) || $opts{h})
 {
   print_usage();
 } else {
