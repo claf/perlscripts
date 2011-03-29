@@ -1,3 +1,4 @@
+- Ajouter la copie des .h depuis source vers destination
 - Still need to add "CALLMINE" detection for a better dot file in fractal.pl
 script. For this purpose, parsing .fractal file is not enought, need to parse C
 files.
@@ -17,3 +18,12 @@ Restrictions
 
 prototypage main : (int argc, char** argv) et non char* argv[]
 cannot name one of the C file in Cecilia "main.c" neither "main.h" maybee need to change (auto naming?)
+
+
+
+**********
+ToDo :
+**********
+
+
+
