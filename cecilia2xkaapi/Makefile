@@ -2,4 +2,4 @@ install:
 	cp -i cecilia2xkaapi.pl $(HOME)/bin/
 
 clean:
-	rm -fr *.c *.h
+	rm -fr *.c *.h dest_test/*
