@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use File::Copy;
 use Getopt::Std;
 
 my $VER_NUM=0.8;
@@ -76,7 +77,7 @@ sub rtrim($)
 
 ######################################
 
-my $header_file = "main.h";
+my $header_file = $output_directory . "/main.h";
 
 print "Generating main header : $header_file . . .";
 
@@ -92,11 +93,18 @@ print HEADER <<EOP;
 #include <stddef.h>
 EOP
 
+my $input_directory = $ARGV[0];
 
+opendir(DIR, $input_directory);
+my @files = readdir(DIR);
+closedir(DIR);
 
-foreach my $file (@ARGV)
+my @c_files = grep(/\.c$/,@files);
+my @h_files = grep(/\.h$/,@files);
+
+foreach my $file (@c_files)
 {
-  open(FILEHANDLER, $file) or die $!;
+  open(FILEHANDLER, $input_directory . "/" . $file) or die $!;
   while (my $line = <FILEHANDLER>)
   {
     if ($line =~ / METHOD\s*\(.*,\s*(.*)\)\s*\(\s*void\s*\*\s*_this\s*,*(.*)\)/)
@@ -111,18 +119,27 @@ foreach my $file (@ARGV)
 
 print " . . . done\n";
 
+# ATM Simply copy each header file in source folder to destination folder without processing :
+foreach my $file (@h_files)
+{
+  print ("Copying header file to destination directory : $file . . .");
+  copy ($input_directory . "/" . $file, $output_directory . "/" . $file) or die "Copy failed: $!";
+  print " . . . done\n";
+}
+
+
 open(HEADER, $header_file) or die $!;
 
 # Unique task name :
 my $taskId = 1;
 
-foreach my $file (@ARGV)
+foreach my $file (@c_files)
 {
   print "Processing file $file to $output_directory/$file . . .";
 
   my @splitted_path = split (/\//, $file);
-  my $file_out = $splitted_path[$#splitted_path];
-  open(FILEHANDLER, $file) or die $!;
+  my $file_out = $output_directory."/".$splitted_path[$#splitted_path];
+  open(FILEHANDLER, $input_directory . "/" . $file) or die $!;
   open(FILEOUT, ">$file_out") or die $!;
 
   while (my $line = <FILEHANDLER>)
@@ -392,7 +409,7 @@ sub WriteHeader {
 # Creating main.c #
 ###################
 
-my $main_file = "main.c";
+my $main_file = $output_directory . "/main.c";
 
 open(MAINFILE, ">$main_file") or die $!;
 
