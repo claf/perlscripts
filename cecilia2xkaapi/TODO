@@ -1,0 +1,29 @@
+- Ajouter la copie des .h depuis source vers destination
+- Still need to add "CALLMINE" detection for a better dot file in fractal.pl
+script. For this purpose, parsing .fractal file is not enought, need to parse C
+files.
+- Add nice option management '-v -h -o'.
+- output directory is -o value if given, generic naming else
+- need to be recursive, main argument is cecilia app directory (and not C files)
+- Supress "DATA." string in case of instance variables for a component instance.
+- Better DECLARE_DATA management.
+- C comments detection.
+
+
+  1.add argument to specify output directory, find a better argument management
+  2.gestion des prototypes vides -> pas de création de structure d'arg etc...
+  3.cible install_script : protection si fichiers deja présents, checks dates de modifs?
+
+Restrictions
+
+prototypage main : (int argc, char** argv) et non char* argv[]
+cannot name one of the C file in Cecilia "main.c" neither "main.h" maybee need to change (auto naming?)
+
+
+
+**********
+ToDo :
+**********
+
+
+

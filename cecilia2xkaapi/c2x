@@ -2,6 +2,43 @@
 
 use strict;
 use warnings;
+use File::Copy;
+use Getopt::Std;
+
+my $VER_NUM=0.9;
+
+sub print_usage()
+{
+  print "Usage : c2x output_directory file_1.c [file_2.c ...]\n";
+  exit ();
+}
+
+my %opts = ();
+
+getopts('Vvhi:',\%opts) or print_usage();
+
+if ($opts{v})
+{
+  print "$0 version $VER_NUM\n";
+  exit;
+}
+
+my $output_directory;
+
+if ((scalar @ARGV < 2) || $opts{h})
+{
+  print_usage();
+} else {
+  $output_directory = shift @ARGV;
+  if ($opts{V}) {
+    print "Output directory set to : $output_directory\n";
+  }
+}
+
+if ($opts{i} && $opts{V})
+{
+  print "Using $opts{i} as Header\n";
+}
 
 ##########################################################
 # Perl trim function to strip whitespace from a string : #
@@ -46,7 +83,11 @@ sub rtrim($)
 
 ######################################
 
-my $header_file = "main.h";
+my $header_file = $output_directory . "/main.h";
+
+if ($opts{V}) {
+  print "Generating main header : $header_file . . .";
+}
 
 open(HEADER, ">$header_file") or die $!;
 
@@ -60,9 +101,23 @@ print HEADER <<EOP;
 #include <stddef.h>
 EOP
 
-foreach my $file (@ARGV)
+if ($opts{i})
 {
-  open(FILEHANDLER, $file) or die $!;
+  print HEADER "#include \"$opts{i}\"\n";
+}
+
+my $input_directory = $ARGV[0];
+
+opendir(DIR, $input_directory);
+my @files = readdir(DIR);
+closedir(DIR);
+
+my @c_files = grep(/\.c$/,@files);
+my @h_files = grep(/\.h$/,@files);
+
+foreach my $file (@c_files)
+{
+  open(FILEHANDLER, $input_directory . "/" . $file) or die $!;
   while (my $line = <FILEHANDLER>)
   {
     if ($line =~ / METHOD\s*\(.*,\s*(.*)\)\s*\(\s*void\s*\*\s*_this\s*,*(.*)\)/)
@@ -75,13 +130,34 @@ foreach my $file (@ARGV)
   }
 }
 
+if ($opts{V}) {
+  print " . . . done\n";
+}
+
+# ATM Simply copy each header file in source folder to destination folder without processing :
+foreach my $file (@h_files)
+{
+  if ($opts{V}) {
+    print ("Copying header file to destination directory : $file\n");
+  }
+  copy ($input_directory . "/" . $file, $output_directory . "/" . $file) or die "Copy failed: $!";
+}
+
+
 open(HEADER, $header_file) or die $!;
 
-foreach my $file (@ARGV)
+# Unique task name :
+my $taskId = 1;
+
+foreach my $file (@c_files)
 {
+  if ($opts{V}){
+    print "Processing file $file to $output_directory/$file . . .";
+  }
+
   my @splitted_path = split (/\//, $file);
-  my $file_out = $splitted_path[$#splitted_path];
-  open(FILEHANDLER, $file) or die $!;
+  my $file_out = $output_directory."/".$splitted_path[$#splitted_path];
+  open(FILEHANDLER, $input_directory . "/" . $file) or die $!;
   open(FILEOUT, ">$file_out") or die $!;
 
   while (my $line = <FILEHANDLER>)
@@ -113,7 +189,7 @@ foreach my $file (@ARGV)
     }
 
     # 2. Change included header :
-    elsif($line =~ /#include <cecilia\.h>/)
+    elsif($line =~ /#include .cecilia\.h./)
     {
       print FILEOUT "\#include \"$header_file\"";
     }
@@ -154,11 +230,11 @@ foreach my $file (@ARGV)
       my @args = split (/,/, $1);
       my $function = $args[0];
 
-      print FILEOUT "  kaapi_task_t* task;\n";
+      print FILEOUT "  kaapi_task_t* task_$taskId;\n";
       print FILEOUT "  ".$function."_arg_t* ".$function."_args;\n";
-      print FILEOUT "  task = kaapi_thread_toptask(thread);\n";
-      print FILEOUT "  kaapi_task_initdfg( task, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
-      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task, ".$function."_arg_t );\n";
+      print FILEOUT "  task_$taskId = kaapi_thread_toptask(thread);\n";
+      print FILEOUT "  kaapi_task_initdfg( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
+      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
 
       for (my $i = 1; $i <= $#args; $i++)
       {
@@ -168,6 +244,9 @@ foreach my $file (@ARGV)
       }
 
       print FILEOUT "  kaapi_thread_pushtask(thread);\n\n";
+      
+      # Increment taskId to guarantee unique task name :
+      $taskId++;
     }
 
     # 5. CALLMINE becomes task :
@@ -176,11 +255,11 @@ foreach my $file (@ARGV)
       my @args = split (/,/, $1);
       my $function = $args[0];
 
-      print FILEOUT "  kaapi_task_t* task;\n";
+      print FILEOUT "  kaapi_task_t* task_$taskId;\n";
       print FILEOUT "  ".$function."_arg_t* ".$function."_args;\n";
-      print FILEOUT "  task = kaapi_thread_toptask(thread);\n";
-      print FILEOUT "  kaapi_task_initdfg( task, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
-      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task, ".$function."_arg_t );\n";
+      print FILEOUT "  task_$taskId = kaapi_thread_toptask(thread);\n";
+      print FILEOUT "  kaapi_task_initdfg( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
+      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
 
       for (my $i = 1; $i <= $#args; $i++)
       {
@@ -188,8 +267,11 @@ foreach my $file (@ARGV)
         my $var_name = &Var_Name_Func ($function, $i);
         print FILEOUT "  ".$function."_args->".$var_name." = $args[$i];\n";
       }
-
+       
       print FILEOUT "  kaapi_thread_pushtask(thread);\n\n";
+    
+      # Increment taskId to guarantee unique task name :
+      $taskId++;
     }
 
     # 6. Normal C line :
@@ -200,6 +282,9 @@ foreach my $file (@ARGV)
     }
   }
   print FILEOUT "\n";
+  if ($opts{V}){
+    print " . . . done\n";
+  }
 }
 
 sub Var_Name_Func {
@@ -309,6 +394,9 @@ sub WriteHeader {
     print HEADER "},\n";
   }
 
+  # new param :
+  print HEADER "\t0,\n";
+
   print HEADER "\t(const struct kaapi_format_t*[]) {";
 
   if ($#args == -1)
@@ -338,4 +426,65 @@ sub WriteHeader {
 
     print HEADER "}, 0)\n\n";
   }
+}
+
+###################
+# Creating main.c #
+###################
+
+my $main_file = $output_directory . "/main.c";
+
+open(MAINFILE, ">$main_file") or die $!;
+
+if ($opts{V}){
+  print "Generating XKaapi entrypoing file : $main_file . . .";
+}
+
+print MAINFILE <<EOP;
+/*
+ * $main_file
+ *
+ * Created by Christophe Laferriere on 22/11/10.
+ * Copyright 2010 INRIA. All rights reserved.
+ *
+ */
+#include <kaapi.h>
+#include "$header_file"
+
+int main (int argc, char** argv)
+{
+  kaapi_frame_t frame;
+  kaapi_task_t* task;
+  kaapi_thread_t* thread;
+
+  main_arg_t* argm;
+
+  int result;
+
+  kaapi_init (&argc, &argv);
+  thread = kaapi_self_thread ();
+  kaapi_thread_save_frame(thread, &frame);
+
+  task = kaapi_thread_toptask(thread);
+
+  kaapi_task_init( task, main_body, kaapi_thread_pushdata(thread, sizeof(main_arg_t)) );
+
+  argm = kaapi_task_getargst( task, main_arg_t );
+  argm->argc = argc;
+  argm->argv = argv;
+
+  kaapi_thread_pushtask(thread);
+
+  result = kaapi_sched_sync ();
+
+  if (result != 0)
+    printf ("kaapi_sched_sync() probleme : %d\\n", result);
+
+  return 0;
+}
+EOP
+
+close (MAINFILE);
+if ($opts{V}){
+  print " . . . done\n";
 }
