@@ -394,6 +394,9 @@ sub WriteHeader {
     print HEADER "},\n";
   }
 
+  # new param :
+  print HEADER "\t0,\n";
+
   print HEADER "\t(const struct kaapi_format_t*[]) {";
 
   if ($#args == -1)
@@ -458,7 +461,7 @@ int main (int argc, char** argv)
 
   int result;
 
-  kaapi_init ();
+  kaapi_init (&argc, &argv);
   thread = kaapi_self_thread ();
   kaapi_thread_save_frame(thread, &frame);
 
