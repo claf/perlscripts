@@ -5,7 +5,7 @@ use warnings;
 use File::Copy;
 use Getopt::Std;
 
-my $VER_NUM=0.8;
+my $VER_NUM=0.9;
 
 sub print_usage()
 {
@@ -15,7 +15,7 @@ sub print_usage()
 
 my %opts = ();
 
-getopts('vh',\%opts) or print_usage();
+getopts('Vvhi:',\%opts) or print_usage();
 
 if ($opts{v})
 {
@@ -30,9 +30,15 @@ if ((scalar @ARGV < 2) || $opts{h})
   print_usage();
 } else {
   $output_directory = shift @ARGV;
-  print "Output directory set to : $output_directory\n";
+  if ($opts{V}) {
+    print "Output directory set to : $output_directory\n";
+  }
 }
 
+if ($opts{i} && $opts{V})
+{
+  print "Using $opts{i} as Header\n";
+}
 
 ##########################################################
 # Perl trim function to strip whitespace from a string : #
@@ -79,7 +85,9 @@ sub rtrim($)
 
 my $header_file = $output_directory . "/main.h";
 
-print "Generating main header : $header_file . . .";
+if ($opts{V}) {
+  print "Generating main header : $header_file . . .";
+}
 
 open(HEADER, ">$header_file") or die $!;
 
@@ -92,6 +100,11 @@ print HEADER <<EOP;
 #include <kaapi.h>
 #include <stddef.h>
 EOP
+
+if ($opts{i})
+{
+  print HEADER "#include \"$opts{i}\"\n";
+}
 
 my $input_directory = $ARGV[0];
 
@@ -117,14 +130,17 @@ foreach my $file (@c_files)
   }
 }
 
-print " . . . done\n";
+if ($opts{V}) {
+  print " . . . done\n";
+}
 
 # ATM Simply copy each header file in source folder to destination folder without processing :
 foreach my $file (@h_files)
 {
-  print ("Copying header file to destination directory : $file . . .");
+  if ($opts{V}) {
+    print ("Copying header file to destination directory : $file\n");
+  }
   copy ($input_directory . "/" . $file, $output_directory . "/" . $file) or die "Copy failed: $!";
-  print " . . . done\n";
 }
 
 
@@ -135,7 +151,9 @@ my $taskId = 1;
 
 foreach my $file (@c_files)
 {
-  print "Processing file $file to $output_directory/$file . . .";
+  if ($opts{V}){
+    print "Processing file $file to $output_directory/$file . . .";
+  }
 
   my @splitted_path = split (/\//, $file);
   my $file_out = $output_directory."/".$splitted_path[$#splitted_path];
@@ -264,7 +282,9 @@ foreach my $file (@c_files)
     }
   }
   print FILEOUT "\n";
-  print " . . . done\n";
+  if ($opts{V}){
+    print " . . . done\n";
+  }
 }
 
 sub Var_Name_Func {
@@ -413,7 +433,9 @@ my $main_file = $output_directory . "/main.c";
 
 open(MAINFILE, ">$main_file") or die $!;
 
-print "Generating XKaapi entrypoing file : $main_file . . .";
+if ($opts{V}){
+  print "Generating XKaapi entrypoing file : $main_file . . .";
+}
 
 print MAINFILE <<EOP;
 /*
@@ -460,4 +482,6 @@ int main (int argc, char** argv)
 EOP
 
 close (MAINFILE);
-print " . . . done\n";
+if ($opts{V}){
+  print " . . . done\n";
+}
