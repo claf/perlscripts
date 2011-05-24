@@ -233,7 +233,7 @@ foreach my $file (@c_files)
       print FILEOUT "  kaapi_task_t* task_$taskId;\n";
       print FILEOUT "  ".$function."_arg_t* ".$function."_args;\n";
       print FILEOUT "  task_$taskId = kaapi_thread_toptask(thread);\n";
-      print FILEOUT "  kaapi_task_initdfg( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
+      print FILEOUT "  kaapi_task_init( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
       print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
 
       for (my $i = 1; $i <= $#args; $i++)
