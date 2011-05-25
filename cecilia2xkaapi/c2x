@@ -5,7 +5,9 @@ use warnings;
 use File::Copy;
 use Getopt::Std;
 
-my $VER_NUM=0.9;
+my $VER_NUM="0.9b";
+my @progpath=split (/\//, $0);
+my $PROGNAME=$progpath[-1];
 
 sub print_usage()
 {
@@ -19,7 +21,7 @@ getopts('Vvhi:',\%opts) or print_usage();
 
 if ($opts{v})
 {
-  print "$0 version $VER_NUM\n";
+  print "$PROGNAME ver. $VER_NUM\n";
   exit;
 }
 
@@ -209,17 +211,20 @@ foreach my $file (@c_files)
 
       print FILEOUT "void ".$function."_body (void* taskarg, kaapi_thread_t* thread)\n"; 
       print FILEOUT "{\n";
-      print FILEOUT "  ".$function."_arg_t* arg0 = (".$function."_arg_t*) taskarg;\n\n";
 
-
+      # Function declaration and argument decapsulation :
       if ($#args != -1)
       {
+        print FILEOUT "  ".$function."_arg_t* arg0 = (".$function."_arg_t*) taskarg;\n\n";
+
         foreach my $arg (@args)
         {
           $arg =~ /.*\s\**([A-Za-z_][A-Za-z0-9_]*)/ or die "No match found";
           print FILEOUT " $arg = arg0->$1;\n";
         }
         print FILEOUT "\n";
+      } else {
+        # No arguments :
       }
     }
 
@@ -231,16 +236,22 @@ foreach my $file (@c_files)
       my $function = $args[0];
 
       print FILEOUT "  kaapi_task_t* task_$taskId;\n";
-      print FILEOUT "  ".$function."_arg_t* ".$function."_args;\n";
       print FILEOUT "  task_$taskId = kaapi_thread_toptask(thread);\n";
-      print FILEOUT "  kaapi_task_init( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
-      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
 
-      for (my $i = 1; $i <= $#args; $i++)
-      {
-        #$args[$i] =~ /.*\s\**([A-Za-z_][A-Za-z0-9_]*)/ or die "No match found";
-        my $var_name = &Var_Name_Func ($function, $i);
-        print FILEOUT "  ".$function."_args->".$var_name." = $args[$i];\n";
+      if ($#args != 0){
+        print FILEOUT "  ".$function."_arg_t* ".$function."_args;\n";
+        print FILEOUT "  kaapi_task_init( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
+        print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
+
+        for (my $i = 1; $i <= $#args; $i++)
+        {
+          #$args[$i] =~ /.*\s\**([A-Za-z_][A-Za-z0-9_]*)/ or die "No match found";
+          my $var_name = &Var_Name_Func ($function, $i);
+          print FILEOUT "  ".$function."_args->".$var_name." = $args[$i];\n";
+        }
+      } else {
+        print FILEOUT "  kaapi_task_init( task_$taskId, ".$function."_body,
+        kaapi_thread_pushdata(thread, 0) );\n";
       }
 
       print FILEOUT "  kaapi_thread_pushtask(thread);\n\n";
@@ -312,23 +323,35 @@ sub WriteHeader {
   print HEADER "\n/**********************************************************************/\n\n";
   print HEADER "/* $function function prototype : */\n\n";
 
-  print HEADER "void ".$function."_body (void* taskarg, kaapi_thread_t* thread);\n\n";  
+  #if ($#args == -1) {
+  #  print HEADER "void ".$function."_body (kaapi_thread_t* thread);\n\n";  
+  #} else {
+    print HEADER "void ".$function."_body (void* taskarg, kaapi_thread_t* thread);\n\n";  
+    #}
 
-  print HEADER "/* $function argument structure : */\n\n";
+  if ($#args != -1) {
+    print HEADER "/* $function argument structure : */\n\n";
+    print HEADER "typedef struct ".$function."_arg_t {\n";
 
-  print HEADER "typedef struct ".$function."_arg_t {\n";
-  foreach my $my_arg (@args)
-  {
-    print HEADER "\t$my_arg;\n";
+    foreach my $my_arg (@args)
+    {
+      print HEADER "\t$my_arg;\n";
+    }
+    print HEADER "} ".$function."_arg_t;\n\n";
   }
-  print HEADER "} ".$function."_arg_t;\n\n";
 
   print HEADER "/* $function task decl. : */\n\n";
 
   print HEADER "KAAPI_REGISTER_TASKFORMAT ( ".$function."_body_format,\n";
   print HEADER "\t\"".$function."\",\n";
   print HEADER "\t".$function."_body,\n";
-  print HEADER "\tsizeof (".$function."_arg_t),\n";
+  
+  if ($#args != -1) {
+    print HEADER "\tsizeof (".$function."_arg_t),\n";
+  } else {
+    print HEADER "\t0,\n";
+  }
+  
   print HEADER "\t".($#args+1).",\n";
   print HEADER "\t(kaapi_access_mode_t[]) {";
 
