@@ -5,7 +5,7 @@ use warnings;
 use File::Copy;
 use Getopt::Std;
 
-my $VER_NUM="0.9b";
+my $VER_NUM="0.9c";
 my @progpath=split (/\//, $0);
 my $PROGNAME=$progpath[-1];
 
@@ -503,6 +503,7 @@ int main (int argc, char** argv)
   if (result != 0)
     printf ("kaapi_sched_sync() probleme : %d\\n", result);
 
+  kaapi_finalize();
   return 0;
 }
 EOP
