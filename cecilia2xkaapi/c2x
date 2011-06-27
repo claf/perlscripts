@@ -5,7 +5,7 @@ use warnings;
 use File::Copy;
 use Getopt::Std;
 
-my $VER_NUM="0.9d";
+my $VER_NUM="0.9 adapt";
 my @progpath=split (/\//, $0);
 my $PROGNAME=$progpath[-1];
 
@@ -17,7 +17,7 @@ sub print_usage()
 
 my %opts = ();
 
-getopts('Vvhi:',\%opts) or print_usage();
+getopts('Vvhi:s:',\%opts) or print_usage();
 
 if ($opts{v})
 {
@@ -40,6 +40,16 @@ if ((scalar @ARGV < 2) || $opts{h})
 if ($opts{i} && $opts{V})
 {
   print "Using $opts{i} as Header\n";
+}
+
+my $splitter = "splitter";
+
+if ($opts{s})
+{
+  print "Using $opts{s} as Splitter\n";
+  $splitter = $opts{s}
+} else {
+  print "Using default splitter\n";
 }
 
 ##########################################################
@@ -211,6 +221,9 @@ EOP
     elsif($line =~ /#include .cecilia\.h./)
     {
       print FILEOUT "\#include \"$header_file\"";
+      # TODO : add splitter_header file in option if user want generic splitter
+      # or his own splitter.
+      #print FILEOUT "\#include \"$splitter_header\"";
     }
 
     # 3. Method re-definition and header update :
@@ -492,37 +505,38 @@ print MAINFILE <<EOP;
  */
 #include <kaapi.h>
 #include "$header_file"
+#include "splitter.h"
+
+typedef struct work
+{
+  kaapi_workqueue_t wq;
+} work_t;
 
 int main (int argc, char** argv)
 {
-  kaapi_frame_t frame;
-  kaapi_task_t* task;
-  kaapi_thread_t* thread;
+  kaapi_thread_t* const thread = kaapi_self_thread ();
+  kaapi_taskadaptive_result_t* ktr = NULL;
+  kaapi_stealcontext_t* sc;
+  work_t work;
 
-  main_arg_t* argm;
+  /* WorkQueue initialization : */
+  kaapi_workqueue_init (&work.wq, LONG_MAX - 1, LONG_MAX - 1);
 
-  int result;
-
+  /* Library initialization : */
   kaapi_init (&argc, &argv);
-  thread = kaapi_self_thread ();
-  kaapi_thread_save_frame(thread, &frame);
+  
+  /* Push an adaptive task : */
+  sc = kaapi_task_begin_adapt (thread, KAAPI_SC_CONCURRENT, splitter, &work);
 
-  task = kaapi_thread_toptask(thread);
+  /* Now let's do the work! */
+  main_body (argc, argv);
 
-  kaapi_task_init( task, main_body, kaapi_thread_pushdata(thread, sizeof(main_arg_t)) );
+  /* Wait for thieves : */
+  kaapi_task_end_adaptive (sc);
 
-  argm = kaapi_task_getargst( task, main_arg_t );
-  argm->argc = argc;
-  argm->argv = argv;
-
-  kaapi_thread_pushtask(thread);
-
-  result = kaapi_sched_sync ();
-
-  if (result != 0)
-    printf ("kaapi_sched_sync() probleme : %d\\n", result);
-
+  /* Library termination : */
   kaapi_finalize();
+
   return 0;
 }
 EOP
