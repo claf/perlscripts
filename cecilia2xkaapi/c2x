@@ -85,7 +85,14 @@ sub rtrim($)
 
 ######################################
 
-my $header_file = $output_directory . "/main.h";
+my $header_file;
+
+if ($output_directory =~ /\.\//)
+{
+  $header_file = "main.h";
+} else {
+  $header_file = $output_directory . "/main.h";
+}
 
 if ($opts{V}) {
   print "Generating main header : $header_file . . .";
@@ -472,7 +479,14 @@ sub WriteHeader {
 # Creating main.c #
 ###################
 
-my $main_file = $output_directory . "/main.c";
+my $main_file;
+
+if ($output_directory =~ /\.\//)
+{
+  $main_file = "main.c";
+} else {
+  $main_file = $output_directory . "/main.c";
+}
 
 open(MAINFILE, ">$main_file") or die $!;
 
