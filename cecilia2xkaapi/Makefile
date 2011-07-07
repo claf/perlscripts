@@ -4,7 +4,9 @@ test:
 
 install:
 	mkdir -p ~/bin
-	cp -i c2x $(HOME)/bin/
+	cp c2x $(HOME)/bin/
+	cp c2x.c $(HOME)/bin/.c2x.c
+	cp c2x.h $(HOME)/bin/.c2x.h
 
 clean:
 	rm -fr *.c *.h dest_test/*
