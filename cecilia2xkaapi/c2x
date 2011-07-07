@@ -46,10 +46,14 @@ my $splitter = "splitter";
 
 if ($opts{s})
 {
-  print "Using $opts{s} as Splitter\n";
+  if ($opts{V}) {
+    print "Using $opts{s} as Splitter\n";
+  }
   $splitter = $opts{s}
 } else {
-  print "Using default splitter\n";
+  if ($opts{V}) {
+    print "Using default splitter\n";
+  }
 }
 
 ##########################################################
@@ -92,6 +96,12 @@ sub rtrim($)
   $string =~ s/\s+$//;
   return $string;
 }
+
+######################################
+
+# Copy c2x.c and c2x.h files to output_directory :
+copy($ENV{'HOME'}."/bin/.c2x.c", $output_directory."/c2x.c") or die "Copy failed: $!";
+copy($ENV{'HOME'}."/bin/.c2x.h", $output_directory."/c2x.h") or die "Copy failed: $!";
 
 ######################################
 
@@ -227,7 +237,8 @@ EOP
     # 2. Change included header :
     elsif($line =~ /#include .cecilia\.h./)
     {
-      print FILEOUT "\#include \"$header_file\"";
+      print FILEOUT "\#include \"$header_file\"\n";
+      print FILEOUT "\#include \"c2x.h\"\n";
       # TODO : add splitter_header file in option if user want generic splitter
       # or his own splitter.
       #print FILEOUT "\#include \"$splitter_header\"";
@@ -246,7 +257,7 @@ EOP
         print FILEOUT $line;
       }
 
-      print FILEOUT "void ".$function."_body (void* taskarg, kaapi_thread_t* thread)\n"; 
+      print FILEOUT "void ".$function."_body (void* taskarg)\n"; 
       print FILEOUT "{\n";
 
       # Function declaration and argument decapsulation :
@@ -272,26 +283,19 @@ EOP
       my @args = split (/,/, $1);
       my $function = $args[0];
 
-      print FILEOUT "  kaapi_task_t* task_$taskId;\n";
-      print FILEOUT "  task_$taskId = kaapi_thread_toptask(thread);\n";
+      print FILEOUT "  component_call_t* data_$taskId = (component_call_t*) malloc (sizeof (component_call_t));\n";
+      print FILEOUT "  ".$function."_arg_t* ".$function."_args = (".$function."_arg_t*) malloc (sizeof (".$function."_arg_t));\n";
 
-      if ($#args != 0){
-        print FILEOUT "  ".$function."_arg_t* ".$function."_args;\n";
-        print FILEOUT "  kaapi_task_init( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
-        print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
-
-        for (my $i = 1; $i <= $#args; $i++)
-        {
-          #$args[$i] =~ /.*\s\**([A-Za-z_][A-Za-z0-9_]*)/ or die "No match found";
-          my $var_name = &Var_Name_Func ($function, $i);
-          print FILEOUT "  ".$function."_args->".$var_name." = $args[$i];\n";
-        }
-      } else {
-        print FILEOUT "  kaapi_task_init( task_$taskId, ".$function."_body,
-        kaapi_thread_pushdata(thread, 0) );\n";
+      for (my $i = 1; $i <= $#args; $i++)
+      {
+        #$args[$i] =~ /.*\s\**([A-Za-z_][A-Za-z0-9_]*)/ or die "No match found";
+        my $var_name = &Var_Name_Func ($function, $i);
+        print FILEOUT "  ".$function."_args->".$var_name." = $args[$i];\n";
       }
 
-      print FILEOUT "  kaapi_thread_pushtask(thread);\n\n";
+      print FILEOUT "  data_".$taskId."->meth = (methode_t) ".$function."_body;\n";
+      print FILEOUT "  data_".$taskId."->args = ".$function."_args;\n";
+      print FILEOUT "  c2x_push (&work, data_$taskId);\n";
       
       # Increment taskId to guarantee unique task name :
       $taskId++;
@@ -303,11 +307,12 @@ EOP
       my @args = split (/,/, $1);
       my $function = $args[0];
 
-      print FILEOUT "  kaapi_task_t* task_$taskId;\n";
-      print FILEOUT "  ".$function."_arg_t* ".$function."_args;\n";
-      print FILEOUT "  task_$taskId = kaapi_thread_toptask(thread);\n";
-      print FILEOUT "  kaapi_task_initdfg( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
-      print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
+      # TODO : when will this be freed? at the end of the task in the thief
+      # entrypoint!
+      print FILEOUT "  ".$function."_arg_t* ".$function."_args = (".$function."_arg_t*) malloc (sizeof (".$function."_arg_t));\n";
+      #print FILEOUT "  task_$taskId = kaapi_thread_toptask(thread);\n";
+      #print FILEOUT "  kaapi_task_initdfg( task_$taskId, ".$function."_body, kaapi_thread_pushdata(thread, sizeof(".$function."_arg_t)) );\n";
+      #print FILEOUT "  ".$function."_args = kaapi_task_getargst( task_$taskId, ".$function."_arg_t );\n";
 
       for (my $i = 1; $i <= $#args; $i++)
       {
@@ -315,8 +320,8 @@ EOP
         my $var_name = &Var_Name_Func ($function, $i);
         print FILEOUT "  ".$function."_args->".$var_name." = $args[$i];\n";
       }
-       
-      print FILEOUT "  kaapi_thread_pushtask(thread);\n\n";
+
+      print FILEOUT "  kaapi_workqueue_push_one (work, ".$function."_args);\n";
     
       # Increment taskId to guarantee unique task name :
       $taskId++;
@@ -363,7 +368,7 @@ sub WriteHeader {
   #if ($#args == -1) {
   #  print HEADER "void ".$function."_body (kaapi_thread_t* thread);\n\n";  
   #} else {
-    print HEADER "void ".$function."_body (void* taskarg, kaapi_thread_t* thread);\n\n";  
+    print HEADER "void ".$function."_body (void* taskarg);\n\n";  
     #}
 
   if ($#args != -1) {
@@ -377,115 +382,6 @@ sub WriteHeader {
     print HEADER "} ".$function."_arg_t;\n\n";
   }
 
-  print HEADER "/* $function task decl. : */\n\n";
-
-  print HEADER "KAAPI_REGISTER_TASKFORMAT ( ".$function."_body_format,\n";
-  print HEADER "\t\"".$function."\",\n";
-  print HEADER "\t".$function."_body,\n";
-  
-  if ($#args != -1) {
-    print HEADER "\tsizeof (".$function."_arg_t),\n";
-  } else {
-    print HEADER "\t0,\n";
-  }
-  
-  print HEADER "\t".($#args+1).",\n";
-  print HEADER "\t(kaapi_access_mode_t[]) {";
-
-  if ($#args == -1)
-  {
-    print HEADER "},\n";
-  }
-  else
-  {
-    for (my $i = 0; $i < $#args; $i++)
-    {
-      print HEADER "KAAPI_ACCESS_MODE_V, ";
-    }
-
-    print HEADER "KAAPI_ACCESS_MODE_V},\n";
-  }
-  
-  # data field :
-  print HEADER "\t(kaapi_offset_t[]) {";
-
-  if ($#args == -1)
-  {
-    print HEADER "},\n";
-  }
-  else
-  {
-    my $argc = $#args;
-    foreach my $arg (@args)
-    {
-      $arg =~ /.*\s\**([A-Za-z_][A-Za-z0-9_]*)/ or die "No match found";
-      my $var_name = $1;
-      print HEADER "offsetof (".$function."_arg_t, $var_name)";
-      if ($argc != 0)
-      {
-        $argc--;
-        print HEADER ", ";
-      }
-    }
-
-    print HEADER "},\n";
-  }
-
-  # version field :
-  print HEADER "\t(kaapi_offset_t[]) {";
-
-  if ($#args == -1)
-  {
-    print HEADER "},\n";
-  }
-  else
-  {
-    my $argc = $#args;
-    foreach my $arg (@args)
-    {
-      print HEADER "0";
-      if ($argc != 0)
-      {
-        $argc--;
-        print HEADER ", ";
-      }
-    }
-
-    print HEADER "},\n";
-  }
-
-  # new param :
-  print HEADER "\t0,\n";
-
-  print HEADER "\t(const struct kaapi_format_t*[]) {";
-
-  if ($#args == -1)
-  {
-    print HEADER "}, 0)\n\n";
-  }
-  else
-  {
-    my $argc = $#args;
-    foreach my $arg (@args)
-    {
-      if ($arg =~ /int [A-Za-z_][A-Za-z0-9_]*/)
-      {
-        print HEADER "kaapi_int_format";
-      }
-      else
-      {
-        print HEADER "kaapi_ulong_format";
-      }
-
-      if ($argc != 0)
-      {
-        $argc--;
-        print HEADER ", ";
-      }
-    }
-
-    print HEADER "}, 0)\n\n";
-  }
 }
 
 ###################
@@ -509,47 +405,54 @@ if ($opts{V}){
 
 print MAINFILE <<EOP;
 /*
- * $main_file
+ * main.c
  *
- * Generated by $PROGNAME version $VER_NUM.
+ * Generated by c2x version 0.9 adapt.
  *
  * Created by Christophe Laferriere on 22/11/10.
  * Copyright 2010 INRIA. All rights reserved.
  *
  */
 #include <kaapi.h>
-#include "$header_file"
-#include "splitter.h"
+#include "main.h"
+#include "c2x.h"
 
-typedef struct work
-{
-  kaapi_workqueue_t wq;
-} work_t;
+#define MAX_COMP_CALL 2000
+
+work_t work;
 
 int main (int argc, char** argv)
 {
-  kaapi_thread_t* const thread = kaapi_self_thread ();
-  kaapi_taskadaptive_result_t* ktr = NULL;
+  main_arg_t* args;
+  kaapi_thread_t* thread;
   kaapi_stealcontext_t* sc;
-  work_t work;
 
   /* WorkQueue initialization : */
-  kaapi_workqueue_init (&work.wq, LONG_MAX - 1, LONG_MAX - 1);
+  work.array = (component_call_t **) malloc (sizeof (component_call_t*) * MAX_COMP_CALL * 2);
+  c2x_workqueue_init (&work.wq, MAX_COMP_CALL * 2);
 
   /* Library initialization : */
   kaapi_init (&argc, &argv);
+  thread = kaapi_self_thread ();
   
   /* Push an adaptive task : */
-  sc = kaapi_task_begin_adapt (thread, KAAPI_SC_CONCURRENT, splitter, &work);
+  sc = kaapi_task_begin_adaptive (thread, KAAPI_SC_CONCURRENT, splitter, &work);
 
   /* Now let's do the work! */
-  main_body (argc, argv);
+  args = (main_arg_t*) malloc (sizeof (main_arg_t));
+  args->argc = argc;
+  args->argv = argv;
+  main_body (args);
 
   /* Wait for thieves : */
   kaapi_task_end_adaptive (sc);
 
   /* Library termination : */
   kaapi_finalize();
+
+  /* Free some stuff : */
+  //c2x_workqueue_destroy (&work.wq);
+  free (work.array);
 
   return 0;
 }
