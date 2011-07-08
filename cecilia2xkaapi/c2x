@@ -100,7 +100,9 @@ sub rtrim($)
 ######################################
 
 # Copy c2x.c and c2x.h files to output_directory :
+print ("Copying c2x.c file to destination directory : $output_directory/c2x.c\n");
 copy($ENV{'HOME'}."/bin/.c2x.c", $output_directory."/c2x.c") or die "Copy failed: $!";
+print ("Copying c2x.h file to destination directory : $output_directory/c2x.h\n");
 copy($ENV{'HOME'}."/bin/.c2x.h", $output_directory."/c2x.h") or die "Copy failed: $!";
 
 ######################################
@@ -417,7 +419,7 @@ print MAINFILE <<EOP;
 #include "main.h"
 #include "c2x.h"
 
-#define MAX_COMP_CALL 2000
+#define MAX_COMP_CALL 20000
 
 work_t work;
 
