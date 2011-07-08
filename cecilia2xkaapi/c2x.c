@@ -76,7 +76,7 @@ int splitter
   if (c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/))
     goto redo_steal;
 
-  for (; nreq; --nreq, ++req, ++nrep, j -= 1/*unit_size*/)
+  for (; nreq; --nreq, ++req, ++nrep, j = (j - 1) % work.wq.size/*unit_size*/)
   {
     /* for reduction, a result is needed. take care of initializing it */
     //kaapi_taskadaptive_result_t* const ktr =
