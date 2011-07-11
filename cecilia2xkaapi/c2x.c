@@ -21,20 +21,25 @@ static void thief_entrypoint
 
   PC2X ("Executing [%d;%d]\n", t_work->beg, t_work->end);
 
+  int beg = t_work->beg;
+  int end = t_work->end;
+
+  c2x_assert_debug ((beg != -1) && (end != -1))
+
   while (1)
   {
     /* Actually call the component methode : */
-    work.array[t_work->beg]->meth (work.array[t_work->beg]->args);
+    work.array[beg]->meth (work.array[beg]->args);
 
     /* Free */
-    free (work.array[t_work->beg]);
+    free (work.array[beg]);
 
     /* update */
-    if (t_work->beg == t_work->end)
+    if (beg == end)
     {
       break;
     } else {
-      t_work->beg = (t_work->beg + 1) % work.wq.size;
+      beg = (beg + 1) % work.wq.size;
     }
   }
 }
@@ -73,11 +78,13 @@ int splitter
   /* perform the actual steal. if the range
      changed size in between, redo the steal
    */
-  if (c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/))
+  if (c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/) == -1)
     goto redo_steal;
 
-  for (; nreq; --nreq, ++req, ++nrep, j = (j - 1) % work.wq.size/*unit_size*/)
+  for (; nreq; --nreq, ++req, ++nrep, j = (j + work.wq.size - 1) % work.wq.size/*unit_size*/)
   {
+    c2x_assert_debug (j != -1);
+
     /* for reduction, a result is needed. take care of initializing it */
     //kaapi_taskadaptive_result_t* const ktr =
     //  kaapi_allocate_thief_result(req, sizeof(thief_work_t), NULL);

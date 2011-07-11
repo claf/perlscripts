@@ -207,13 +207,14 @@ static inline int c2x_workqueue_steal(
   c2x_workqueue_index_t size 
 )
 {
+  pthread_mutex_lock (&kwq->lock);
   /* Not enought : */
   if (size > c2x_workqueue_size (kwq))
   {
+    pthread_mutex_unlock (&kwq->lock);
     return -1;
   }
 
-  pthread_mutex_lock (&kwq->lock);
 
   PC2X("beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
 
@@ -261,6 +262,8 @@ static inline int c2x_workqueue_steal(
 
     return 0;
   }
+
+  pthread_mutex_unlock (&kwq->lock);
 
   return -1;
 }  
