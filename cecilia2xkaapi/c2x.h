@@ -72,6 +72,7 @@ typedef struct thief_work_t {
 
 /* Splitters : */
 int splitter (kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args);
+int splitter_N (kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args);
 
 /* Memory fence : should be both read & write barrier */
 static inline void c2x_mem_barrier()  
@@ -99,7 +100,7 @@ static inline int c2x_workqueue_init (c2x_workqueue_t* kwq, c2x_workqueue_index_
 #  error "May be alignment constraints exit to garantee atomic read write"
 #endif
   kwq->beg    = -1;
-  kwq->end    = -1;
+  kwq->end    = 0;
   kwq->size   = size;
   kwq->a_size = 0;
   return 0;
@@ -122,11 +123,10 @@ static inline int c2x_workqueue_push (c2x_workqueue_t* kwq)
   if (kwq->beg == -1)
   {
     //mfence?
-    kwq->beg = 0;
-    kwq->end = 0;
+    kwq->beg = kwq->end;
     kwq->a_size += 1;
     PC2X("return\tbeg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
-    return 0;
+    return kwq->end;
   }
 
   /* Last position of the queue : */
@@ -221,16 +221,11 @@ static inline int c2x_workqueue_steal(
   /* Now the workqueue is empty : */
   if (size == c2x_workqueue_size (kwq))
   {
-    if (kwq->beg > kwq->end)
-    {
-      *end = kwq->beg;
-      *beg = kwq->end;
-    } else {
-      *end = kwq->end;
-      *beg = kwq->beg;
-    }
+    *end = kwq->end;
+    *beg = kwq->beg;
 
-    kwq->beg = kwq->end = -1;
+    kwq->end = (kwq->end + 1) % kwq->size;
+    kwq->beg = -1;
     kwq->a_size = 0;
     PC2X("return\tbeg : %d\tend : %d\tb : %d\te : %d\n", kwq->beg, kwq->end, *beg, *end);
     pthread_mutex_unlock (&kwq->lock);
