@@ -35,7 +35,7 @@
 #endif
 
 
-typedef long c2x_workqueue_index_t;
+typedef int c2x_workqueue_index_t;
 
 typedef struct {
   volatile c2x_workqueue_index_t beg __attribute__((aligned(64)));
