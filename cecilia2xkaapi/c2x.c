@@ -24,10 +24,12 @@ static void thief_entrypoint
   int beg = t_work->beg;
   int end = t_work->end;
 
+//    printf ("Executing %d from [%d;%d]\n", beg, t_work->beg, t_work->end);
   c2x_assert_debug ((beg != -1) && (end != -1))
 
   while (1)
   {
+
     /* Actually call the component methode : */
     work.array[beg]->meth (work.array[beg]->args);
 
@@ -126,8 +128,13 @@ int splitter_N
  redo_steal:
   /* do not steal if range size <= PAR_GRAIN */
   range_size = c2x_workqueue_size(&vw->wq);
-  if (range_size < 10*nreq)
+  if (range_size == 0)
+  {
     return 0;
+  } else if (range_size < 10*nreq)
+  {
+    nreq = 1;
+  }
 
   /* how much per req */
   unit_size = range_size / nreq;
