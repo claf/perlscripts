@@ -10,12 +10,18 @@
 #include "kaapi.h"
 #include "c2x.h"
 
+// TODO : that's ugly!!!
+#include "MJPEG.h"
+#include <GTG.h>
+
 #define CONFIG_PAR_GRAIN 1
 
 /* entrypoint */
 static void thief_entrypoint
 (void* args, kaapi_thread_t* thread, kaapi_stealcontext_t* sc)
 {
+  //doState ("Te");
+  
   /* input work */
   thief_work_t* const t_work = (thief_work_t*) args;
 
@@ -43,12 +49,17 @@ static void thief_entrypoint
       beg = (beg + 1) % work.wq.size;
     }
   }
+
+  //doState ("Xk");
 }
 
 
 int splitter
 (kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args)
 {
+  // TODO : ifdef on that!
+  //doState ("Sp");
+
   /* victim workqueue : */
   work_t* const vw = (work_t*) args;
 
@@ -112,6 +123,8 @@ split:
     PC2X ("Reply interval [%d;%d]\n", tw->beg, tw->end);
     kaapi_reply_pushhead_adaptive_task(sc, req);
   }
+
+  //doState ("Xk");
 
   return nrep;
 }
