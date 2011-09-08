@@ -19,13 +19,12 @@ static void thief_entrypoint
   /* input work */
   thief_work_t* const t_work = (thief_work_t*) args;
 
-  PC2X ("Executing [%d;%d]\n", t_work->beg, t_work->end);
-
   int beg = t_work->beg;
   int end = t_work->end;
 
-//    printf ("Executing %d from [%d;%d]\n", beg, t_work->beg, t_work->end);
-  c2x_assert_debug ((beg != -1) && (end != -1))
+  PC2X ("Executing %d from [%d;%d]\n", beg, t_work->beg, t_work->end);
+
+  c2x_assert_debug ((beg != -1) && (end != -1));
 
   while (1)
   {
@@ -66,7 +65,14 @@ int splitter
  redo_steal:
   /* do not steal if range size <= PAR_GRAIN */
   range_size = c2x_workqueue_size(&vw->wq);
-  if (range_size <= CONFIG_PAR_GRAIN)
+  if (range_size == 1)
+  {
+    nreq = 1;
+    unit_size = 1;
+    goto split;
+  }
+
+  if (range_size < CONFIG_PAR_GRAIN)
     return 0;
 
   /* how much per req */
@@ -80,6 +86,7 @@ int splitter
   /* perform the actual steal. if the range
      changed size in between, redo the steal
    */
+split:
   if (c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/) == -1)
     goto redo_steal;
 
