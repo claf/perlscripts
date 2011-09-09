@@ -13,6 +13,7 @@
 // TODO : that's ugly!!!
 #include "MJPEG.h"
 #include <GTG.h>
+#include "timing.h"
 
 #define CONFIG_PAR_GRAIN 1
 
@@ -57,6 +58,10 @@ static void thief_entrypoint
 int splitter
 (kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args)
 {
+  int ret;
+
+  tick_t ts1,ts2,tp1,tp2;
+  GET_TICK(ts1);
   // TODO : ifdef on that!
   //doState ("Sp");
 
@@ -98,7 +103,12 @@ int splitter
      changed size in between, redo the steal
    */
 split:
-  if (c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/) == -1)
+  GET_TICK(tp1);
+  ret = c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/);
+  GET_TICK(tp2);
+  time_table[tid].tpop += TIMING_DELAY(tp1,tp2);
+
+  if (ret == -1)
     goto redo_steal;
 
   for (; nreq; --nreq, ++req, ++nrep, i = (i + 1) % work.wq.size/*unit_size*/)
@@ -125,6 +135,8 @@ split:
   }
 
   //doState ("Xk");
+  GET_TICK(ts2);
+  time_table[tid].tsplit += TIMING_DELAY(ts1,ts2);
 
   return nrep;
 }
