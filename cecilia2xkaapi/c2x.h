@@ -13,7 +13,6 @@
 
 #include <pthread.h>
 #include <stdlib.h>
-#include "define_common.h"
 
 #ifndef likely
 #  define likely(x)       __builtin_expect((x),1)
@@ -29,7 +28,7 @@
 #endif
 
 #ifdef _C2X_DEBUG
-#define PC2X(format, ...) printf ("%c[%d;%d;%dm[c2x::%s]%c[%d;%d;%dm " format, 0x1B, 0,CYAN,40,__FUNCTION__, 0x1B, 0, WHITE, 40, ## __VA_ARGS__)
+#define PC2X(format, ...) printf ("[c2x::%s] " format, __FUNCTION__, ## __VA_ARGS__)
 #else
 #define PC2X(format, ...)
 #endif
