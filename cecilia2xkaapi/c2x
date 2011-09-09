@@ -412,8 +412,11 @@ print MAINFILE <<EOP;
 #include <sys/time.h>
 #include "main.h"
 #include "c2x.h"
-#include "timing.h"
-#
+
+#ifdef C2X_USES_GTG
+# include "timing.h"
+#endif //C2X_USES_GTG
+
 #define MAX_COMP_CALL 20000
 
 work_t work;
@@ -429,42 +432,38 @@ int main (int argc, char** argv)
   work.array = (component_call_t **) malloc (sizeof (component_call_t*) * MAX_COMP_CALL * 2);
   c2x_workqueue_init (&work.wq, MAX_COMP_CALL * 2);
 
+#ifdef C2X_USES_TIMING
+  /* Timing lib. initialisation : */
   timing_init();
+#endif //C2X_USES_TIMING
 
   /* Library initialization : */
   kaapi_init (&argc, &argv);
   thread = kaapi_self_thread ();
   
-  /* TODO : that's ugly dude! */
+#ifdef C2X_USES_GTG
   /* GTG init for PAJE traces : */
   setTraceType (PAJE);
   initTrace ("trace", 0, GTG_FLAG_NONE);
+
   addContType ("T", "0", "Thread");
   addStateType ("S", "T", "State");
-  addEntityValue ("Re", "S", "Read", GTG_RED);
-  addEntityValue ("Wa", "S", "Wait", GTG_BLACK);
-  addEntityValue ("Fo", "S", "Fork", GTG_BLUE);
+  
   addEntityValue ("Te", "S", "Thief_Entrypoint", GTG_DARKGREY);
   addEntityValue ("St", "S", "Steal", GTG_LIGHTGREY);
-  addEntityValue ("De", "S", "Decode", GTG_BLUE);
-  addEntityValue ("Rs", "S", "Resize", GTG_GREEN);
   addEntityValue ("Xk", "S", "XKaapi", GTG_WHITE);
   addEntityValue ("Sp", "S", "Splitter", GTG_DARKBLUE);
-  addContainer (0, "P", "T", "0", "idFreeze", "0");
-  addContainer (0, "R", "T", "P", "Render", "0");
-
+  addContainer (0, "P", "T", "0", "machine", "0");
   addVarType ("W", "WorkQueue Size", "T");
-  addEventType ("D", "T", "Drop");
-  addEventType ("P", "T", "Print");
 
+  /* Add a container for every kaapi_threads : */
   for (int i = 1; i <= kaapi_getconcurrency(); i++)
   {
-    char buf[4];
+    char buf[3];
     sprintf(buf, "%d", i); 
     addContainer (0, buf, "T", "P", buf, "0");
   }
-
-  addLinkType ("F", "Fetch", "T", "T", "T");
+#endif //C2X_USES_GTG
 
   struct timeval start;
   gettimeofday (&start, NULL);
@@ -485,12 +484,16 @@ int main (int argc, char** argv)
   /* Library termination : */
   kaapi_finalize();
 
+#ifdef C2X_USES_GTG
   /* Trace writing */
   endTrace();
+#endif //C2X_USES_GTG
 
   /* Free some stuff : */
+  // TODO : destroy or not?
   //c2x_workqueue_destroy (&work.wq);
   free (work.array);
+  free (args);
 
   return 0;
 }

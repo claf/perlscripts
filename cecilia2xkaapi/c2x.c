@@ -12,8 +12,14 @@
 
 // TODO : that's ugly!!!
 #include "MJPEG.h"
-#include <GTG.h>
-#include "timing.h"
+
+#ifdef C2X_USES_GTG
+# include <GTG.h>
+#endif
+
+#ifdef C2X_USES_TIMING
+# include "timing.h"
+#endif
 
 #define CONFIG_PAR_GRAIN 1
 
@@ -21,6 +27,7 @@
 static void thief_entrypoint
 (void* args, kaapi_thread_t* thread, kaapi_stealcontext_t* sc)
 {
+  //TODO mettre ces fonctions dans un fichier avec C2X
   //doState ("Te");
   
   /* input work */
@@ -35,6 +42,8 @@ static void thief_entrypoint
 
   while (1)
   {
+    //TODO : un pool de structure serait'il mieux que du malloc dans fetch et du
+    //free ici ?
 
     /* Actually call the component methode : */
     work.array[beg]->meth (work.array[beg]->args);
@@ -51,6 +60,7 @@ static void thief_entrypoint
     }
   }
 
+  //TODO mettre ces fonctions dans un fichier avec C2X
   //doState ("Xk");
 }
 
@@ -63,12 +73,15 @@ int splitter
   if (unlikely (tid == -1))
     tid = kaapi_get_self_kid();
   
-
+  // TODO séparer les valeurs de C2X et celles de MJPEG dans cette structure:
   ++time_table[tid].nbsplit;
 
+#ifdef C2X_USES_TIMING
   tick_t ts1,ts2,tp1,tp2;
   GET_TICK(ts1);
-  // TODO : ifdef on that!
+#endif
+
+  // TODO séparer les valeurs de C2X et celles de MJPEG dans cette structure:
   //doState ("Sp");
 
   /* victim workqueue : */
@@ -96,9 +109,11 @@ int splitter
 
   if (range_size < CONFIG_PAR_GRAIN)
   {
+#ifdef C2X_USES_TIMING
     GET_TICK(ts2);
     time_table[tid].tsplit += TICK_RAW_DIFF(ts1,ts2);
     //printf ("%i, %li, %lu\n", tid, time_table[tid].tsplit, TICK_RAW_DIFF(ts1,ts2));
+#endif
     return 0;
   }
 
@@ -114,10 +129,14 @@ int splitter
      changed size in between, redo the steal
    */
 split:
+#ifdef C2X_USES_TIMING
   GET_TICK(tp1);
+#endif
   ret = c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/);
+#ifdef C2X_USES_TIMING
   GET_TICK(tp2);
   time_table[tid].tpop += TICK_RAW_DIFF(tp1,tp2);
+#endif
 
   if (ret == -1)
     goto redo_steal;
@@ -146,9 +165,11 @@ split:
   }
 
   //doState ("Xk");
+#ifdef C2X_USES_TIMING
   GET_TICK(ts2);
   time_table[tid].tsplit += TICK_RAW_DIFF(ts1,ts2);
   //printf ("%i, %li, %lu\n", tid, time_table[tid].tsplit, TICK_RAW_DIFF(ts1,ts2));
+#endif
   return nrep;
 }
 
