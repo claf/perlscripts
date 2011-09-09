@@ -64,6 +64,8 @@ int splitter
     tid = kaapi_get_self_kid();
   
 
+  ++time_table[tid].nbsplit;
+
   tick_t ts1,ts2,tp1,tp2;
   GET_TICK(ts1);
   // TODO : ifdef on that!
@@ -95,7 +97,8 @@ int splitter
   if (range_size < CONFIG_PAR_GRAIN)
   {
     GET_TICK(ts2);
-    time_table[tid].tsplit += TIMING_DELAY(ts1,ts2);
+    time_table[tid].tsplit += TICK_RAW_DIFF(ts1,ts2);
+    //printf ("%i, %li, %lu\n", tid, time_table[tid].tsplit, TICK_RAW_DIFF(ts1,ts2));
     return 0;
   }
 
@@ -114,7 +117,7 @@ split:
   GET_TICK(tp1);
   ret = c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/);
   GET_TICK(tp2);
-  time_table[tid].tpop += TIMING_DELAY(tp1,tp2);
+  time_table[tid].tpop += TICK_RAW_DIFF(tp1,tp2);
 
   if (ret == -1)
     goto redo_steal;
@@ -144,8 +147,8 @@ split:
 
   //doState ("Xk");
   GET_TICK(ts2);
-  time_table[tid].tsplit += TIMING_DELAY(ts1,ts2);
-
+  time_table[tid].tsplit += TICK_RAW_DIFF(ts1,ts2);
+  //printf ("%i, %li, %lu\n", tid, time_table[tid].tsplit, TICK_RAW_DIFF(ts1,ts2));
   return nrep;
 }
 
