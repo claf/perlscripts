@@ -412,7 +412,8 @@ print MAINFILE <<EOP;
 #include <sys/time.h>
 #include "main.h"
 #include "c2x.h"
-
+#include "timing.h"
+#
 #define MAX_COMP_CALL 20000
 
 work_t work;
@@ -427,6 +428,8 @@ int main (int argc, char** argv)
   /* WorkQueue initialization : */
   work.array = (component_call_t **) malloc (sizeof (component_call_t*) * MAX_COMP_CALL * 2);
   c2x_workqueue_init (&work.wq, MAX_COMP_CALL * 2);
+
+  timing_init();
 
   /* Library initialization : */
   kaapi_init (&argc, &argv);
