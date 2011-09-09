@@ -60,6 +60,10 @@ int splitter
 {
   int ret;
 
+  if (unlikely (tid == -1))
+    tid = kaapi_get_self_kid();
+  
+
   tick_t ts1,ts2,tp1,tp2;
   GET_TICK(ts1);
   // TODO : ifdef on that!
