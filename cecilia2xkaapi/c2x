@@ -428,6 +428,10 @@ int main (int argc, char** argv)
   work.array = (component_call_t **) malloc (sizeof (component_call_t*) * MAX_COMP_CALL * 2);
   c2x_workqueue_init (&work.wq, MAX_COMP_CALL * 2);
 
+  /* Library initialization : */
+  kaapi_init (&argc, &argv);
+  thread = kaapi_self_thread ();
+  
   /* TODO : that's ugly dude! */
   /* GTG init for PAJE traces : */
   setTraceType (PAJE);
@@ -447,7 +451,9 @@ int main (int argc, char** argv)
   addContainer (0, "R", "T", "P", "Render", "0");
 
   addVarType ("W", "WorkQueue Size", "T");
-  
+  addEventType ("D", "T", "Drop");
+  addEventType ("P", "T", "Print");
+
   for (int i = 1; i <= kaapi_getconcurrency(); i++)
   {
     char buf[4];
@@ -461,10 +467,6 @@ int main (int argc, char** argv)
   gettimeofday (&start, NULL);
   epoc = start.tv_sec * 1000000 + start.tv_usec;
 
-  /* Library initialization : */
-  kaapi_init (&argc, &argv);
-  thread = kaapi_self_thread ();
-  
   /* Push an adaptive task : */
   sc = kaapi_task_begin_adaptive (thread, KAAPI_SC_CONCURRENT, $splitter, &work);
 
