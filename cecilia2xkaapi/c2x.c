@@ -89,7 +89,11 @@ int splitter
   }
 
   if (range_size < CONFIG_PAR_GRAIN)
+  {
+    GET_TICK(ts2);
+    time_table[tid].tsplit += TIMING_DELAY(ts1,ts2);
     return 0;
+  }
 
   /* how much per req */
   unit_size = range_size / (nreq + 1);
