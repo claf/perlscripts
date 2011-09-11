@@ -73,8 +73,9 @@ int splitter
   if (unlikely (tid == -1))
     tid = kaapi_get_self_kid();
   
-  // TODO séparer les valeurs de C2X et celles de MJPEG dans cette structure:
-  ++time_table[tid].nbsplit;
+#ifdef C2X_USES_TIMING
+  ++(wq_time_table[tid].nbsplit);
+#endif
 
 #ifdef C2X_USES_TIMING
   tick_t ts1,ts2,tp1,tp2;
@@ -111,8 +112,8 @@ int splitter
   {
 #ifdef C2X_USES_TIMING
     GET_TICK(ts2);
-    time_table[tid].tsplit += TICK_RAW_DIFF(ts1,ts2);
-    //printf ("%i, %li, %lu\n", tid, time_table[tid].tsplit, TICK_RAW_DIFF(ts1,ts2));
+    wq_time_table[tid].tsplit += TICK_RAW_DIFF(ts1,ts2);
+    //printf ("%d, %ld, %llu\n", tid, wq_time_table[tid].tsplit, TICK_RAW_DIFF(ts1,ts2));
 #endif
     return 0;
   }
@@ -135,7 +136,7 @@ split:
   ret = c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/);
 #ifdef C2X_USES_TIMING
   GET_TICK(tp2);
-  time_table[tid].tpop += TICK_RAW_DIFF(tp1,tp2);
+  wq_time_table[tid].tpop += TICK_RAW_DIFF(tp1,tp2);
 #endif
 
   if (ret == -1)
@@ -167,8 +168,8 @@ split:
   //doState ("Xk");
 #ifdef C2X_USES_TIMING
   GET_TICK(ts2);
-  time_table[tid].tsplit += TICK_RAW_DIFF(ts1,ts2);
-  //printf ("%i, %li, %lu\n", tid, time_table[tid].tsplit, TICK_RAW_DIFF(ts1,ts2));
+  wq_time_table[tid].tsplit += TICK_RAW_DIFF(ts1,ts2);
+  //printf ("%d, %ld, %llu\n", tid, wq_time_table[tid].tsplit, TICK_RAW_DIFF(ts1,ts2));
 #endif
   return nrep;
 }

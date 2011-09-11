@@ -285,6 +285,11 @@ EOP
       my @args = split (/,/, $1);
       my $function = $args[0];
 
+      print FILEOUT "#ifdef C2X_USES_TIMING\n";
+      print FILEOUT "  tick_t t1_$taskId, t2_$taskId;\n";
+      print FILEOUT "  GET_TICK (t1_$taskId);\n";
+      print FILEOUT "#endif\n";
+
       print FILEOUT "  component_call_t* data_$taskId = (component_call_t*) malloc (sizeof (component_call_t));\n";
       print FILEOUT "  ".$function."_arg_t* ".$function."_args = (".$function."_arg_t*) malloc (sizeof (".$function."_arg_t));\n";
 
@@ -298,11 +303,17 @@ EOP
       print FILEOUT "  data_".$taskId."->meth = (methode_t) ".$function."_body;\n";
       print FILEOUT "  data_".$taskId."->args = ".$function."_args;\n";
       print FILEOUT "  c2x_push (&work, data_$taskId);\n";
-      
+
+      print FILEOUT "#ifdef C2X_USES_TIMING\n";
+      print FILEOUT "  GET_TICK (t2_$taskId);\n";
+      print FILEOUT "  wq_time_table[tid].tpush += TICK_RAW_DIFF(t1_$taskId,t2_$taskId);\n";
+      print FILEOUT "#endif\n";
+
       # Increment taskId to guarantee unique task name :
       $taskId++;
     }
 
+    # TODO : CALLMINE need to work almost like CALL!
     # 5. CALLMINE becomes task :
     elsif ($line =~ /^\s*CALLMINE\s*\([^,]*,\s*(.*)\)\s*;/)
     {
@@ -422,8 +433,15 @@ print MAINFILE <<EOP;
 work_t work;
 uint64_t epoc = 0;
 
+#ifdef C2X_USES_TIMING
+// TODO : xkaapi bug ?
+//  time_wq_t* wq_time_table;
+  time_wq_t wq_time_table[48];
+#endif
+
 int main (int argc, char** argv)
 {
+  int UNUSED (nb_threads);
   main_arg_t* args;
   kaapi_thread_t* thread;
   kaapi_stealcontext_t* sc;
@@ -439,7 +457,20 @@ int main (int argc, char** argv)
 
   /* Library initialization : */
   kaapi_init (&argc, &argv);
+  nb_threads = kaapi_getconcurrency();
   thread = kaapi_self_thread ();
+
+#ifdef C2X_USES_TIMING
+// TODO : xkaapi bug ?
+//  wq_time_table = (time_wq_t*) malloc (sizeof (time_wq_t) * nb_threads);
+  for (int i = 0; i < nb_threads; i++)
+  {
+    wq_time_table[i].tpop    = 0;
+    wq_time_table[i].tpush   = 0;
+    wq_time_table[i].tsplit  = 0;
+    wq_time_table[i].nbsplit = 0;
+  }
+#endif
   
 #ifdef C2X_USES_GTG
   /* GTG init for PAJE traces : */
@@ -457,7 +488,7 @@ int main (int argc, char** argv)
   addVarType ("W", "WorkQueue Size", "T");
 
   /* Add a container for every kaapi_threads : */
-  for (int i = 1; i <= kaapi_getconcurrency(); i++)
+  for (int i = 1; i <= nb_threads; i++)
   {
     char buf[3];
     sprintf(buf, "%d", i); 
@@ -481,19 +512,36 @@ int main (int argc, char** argv)
   /* Wait for thieves : */
   kaapi_task_end_adaptive (sc);
 
-  /* Library termination : */
-  kaapi_finalize();
-
 #ifdef C2X_USES_GTG
   /* Trace writing */
   endTrace();
 #endif //C2X_USES_GTG
+
+#ifdef C2X_USES_TIMING
+  printf ("\\n*** C2X TIMING INFOS ***\\n");
+  for (int i = 0; i < nb_threads; i++)
+  {
+    printf ("\\nTime for thread %d :\\t pop :%ld",i,(long)tick2usec(wq_time_table[i].tpop));
+    printf ("\\nTime for thread %d :\\t push :%ld",i,(long)tick2usec(wq_time_table[i].tpush));
+    printf ("\\nTime for thread %d :\\t split :%ld",i,(long)tick2usec(wq_time_table[i].tsplit));
+    printf ("\\nTime for thread %d :\\t nb_split :%d",i, wq_time_table[i].nbsplit);
+  }
+  printf ("\\n\\n*** END ***\\n");
+#endif
+
+  /* Library termination : */
+  kaapi_finalize();
 
   /* Free some stuff : */
   // TODO : destroy or not?
   //c2x_workqueue_destroy (&work.wq);
   free (work.array);
   free (args);
+
+#ifdef C2X_USES_TIMING
+// TODO : xkaapi bug ?
+//  free (wq_time_table);
+#endif
 
   return 0;
 }

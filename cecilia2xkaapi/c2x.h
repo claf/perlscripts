@@ -24,6 +24,16 @@
 #  define unlikely(x)     __builtin_expect((x),0)
 #endif
 
+/* Usefull unused to get rid of warnings sometimes 
+ * usage : int UNUSED (toto); */
+#ifndef UNUSED
+# if defined(__GNUC__)
+# define UNUSED(x) x __attribute__((unused))
+# elif defined(__LCLINT__)
+# define UNUSED(x) /*@unused@*/ x
+# endif
+#endif
+
 #if defined(NDEBUG)
 #  define c2x_assert_debug( cond )
 #else
@@ -38,6 +48,21 @@
 #define PC2X(format, ...)
 #endif
 
+
+#ifdef C2X_USES_TIMING
+// per worker thread structure :
+typedef struct time_wq {
+  long tpop;
+  long tpush;
+  long tsplit;
+  long nbsplit;
+} __attribute__((aligned (64))) time_wq_t;
+
+// global time table :
+// TODO : xkaapi bug?
+//extern time_wq_t* wq_time_table;
+extern time_wq_t wq_time_table[48];
+#endif
 
 typedef int c2x_workqueue_index_t;
 
