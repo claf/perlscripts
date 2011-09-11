@@ -413,9 +413,9 @@ print MAINFILE <<EOP;
 #include "main.h"
 #include "c2x.h"
 
-#ifdef C2X_USES_GTG
+#ifdef C2X_USES_TIMING
 # include "timing.h"
-#endif //C2X_USES_GTG
+#endif
 
 #define MAX_COMP_CALL 20000
 
