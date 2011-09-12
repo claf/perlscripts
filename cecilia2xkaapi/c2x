@@ -518,14 +518,25 @@ int main (int argc, char** argv)
 #endif //C2X_USES_GTG
 
 #ifdef C2X_USES_TIMING
-  printf ("\\n*** C2X TIMING INFOS ***\\n");
+  printf ("\\n*** C2X TIMING INFOS ***\\n\\n");
+  long tpop = 0;
+  long tpush = 0;
+  long tsplit = 0;
   for (int i = 0; i < nb_threads; i++)
   {
-    printf ("\\nTime for thread %d :\\t pop :%ld",i,(long)tick2usec(wq_time_table[i].tpop));
-    printf ("\\nTime for thread %d :\\t push :%ld",i,(long)tick2usec(wq_time_table[i].tpush));
-    printf ("\\nTime for thread %d :\\t split :%ld",i,(long)tick2usec(wq_time_table[i].tsplit));
-    printf ("\\nTime for thread %d :\\t nb_split :%d",i, wq_time_table[i].nbsplit);
+    printf ("Time for thread %d :\\t pop :%ld\\n",i,(long)tick2usec(wq_time_table[i].tpop));
+    tpop += (long)tick2usec(wq_time_table[i].tpop);
+    printf ("Time for thread %d :\\t push :%ld\\n",i,(long)tick2usec(wq_time_table[i].tpush));
+    tpush += (long)tick2usec(wq_time_table[i].tpush);
+    printf ("Time for thread %d :\\t split :%ld\\n",i,(long)tick2usec(wq_time_table[i].tsplit));
+    tsplit += (long)tick2usec(wq_time_table[i].tsplit);
+    printf ("Time for thread %d :\\t nb_split :%ld\\n",i, wq_time_table[i].nbsplit);
+    printf ("--------------------------------\\n");
   }
+  printf ("Total pop : %ld\\n", tpop);
+  printf ("Total push : %ld\\n", tpush);
+  printf ("Total splitter : %ld\\n", tsplit);
+
   printf ("\\n\\n*** END ***\\n");
 #endif
 
