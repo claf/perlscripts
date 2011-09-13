@@ -48,6 +48,7 @@
 #define PC2X(format, ...)
 #endif
 
+extern __thread int c2x_tid;
 
 #ifdef C2X_USES_TIMING
 // per worker thread structure :
@@ -55,6 +56,7 @@ typedef struct time_wq {
   long tpop;
   long tpush;
   long tsplit;
+  long tTotsplit;
   long nbsplit;
 } __attribute__((aligned (64))) time_wq_t;
 
