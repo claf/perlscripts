@@ -48,6 +48,7 @@ static void thief_entrypoint
     work.array[beg]->meth (work.array[beg]->args);
 
     /* Free */
+    free (work.array[beg]->args);
     free (work.array[beg]);
 
     /* update */
