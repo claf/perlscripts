@@ -10,10 +10,6 @@
 #include "kaapi.h"
 #include "c2x.h"
 
-#ifdef C2X_USES_GTG
-# include <GTG.h>
-#endif
-
 #ifdef C2X_USES_TIMING
 # include "timing.h"
 #endif
