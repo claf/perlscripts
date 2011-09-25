@@ -7,6 +7,7 @@ install:
 	cp c2x $(HOME)/bin/
 	cp c2x.c $(HOME)/bin/.c2x.c
 	cp c2x.h $(HOME)/bin/.c2x.h
+	cp main.c $(HOME)/bin/.main.c
 
 clean:
 	rm -fr *.c *.h dest_test/*
