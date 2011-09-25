@@ -5,7 +5,7 @@ use warnings;
 use File::Copy;
 use Getopt::Std;
 
-my $VER_NUM="0.9 adapt";
+my $VER_NUM="0.9.1 adapt";
 my @progpath=split (/\//, $0);
 my $PROGNAME=$progpath[-1];
 
