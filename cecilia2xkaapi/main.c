@@ -115,23 +115,21 @@ int main (int argc, char** argv)
 
 #ifdef C2X_USES_GTG
   /* GTG init for PAJE traces : */
-  setTraceType (PAJE);
-  initTrace ("trace", 0, GTG_FLAG_NONE);
+  gtg_init();
 
-  addContType ("T", "0", "Thread");
-  addStateType ("S", "T", "State");
-  
-  addEntityValue ("Te", "S", "Thief_Entrypoint", GTG_DARKGREY);
-  addEntityValue ("St", "S", "Steal", GTG_LIGHTGREY);
-  addEntityValue ("Xk", "S", "XKaapi", GTG_WHITE);
-  addEntityValue ("Sp", "S", "Splitter", GTG_DARKBLUE);
+  addEntityValue ("Te", "ST", "Thief_Entrypoint", GTG_DARKGREY);
+  addEntityValue ("St", "ST", "Steal", GTG_LIGHTGREY);
+  addEntityValue ("Xk", "ST", "XKaapi", GTG_WHITE);
+  addEntityValue ("Sp", "ST", "Splitter", GTG_DARKBLUE);
+
   addContainer (0, "P", "T", "0", "machine", "0");
+  
   addVarType ("W", "WorkQueue Size", "T");
 
   /* Add a container for every kaapi_threads : */
   for (int i = 1; i <= nb_threads; i++)
   {
-    char buf[3];
+    char buf[4];
     sprintf(buf, "%d", i); 
     addContainer (0, buf, "T", "P", buf, "0");
   }
@@ -164,7 +162,7 @@ int main (int argc, char** argv)
   long tpush = 0;
   long tsplit = 0;
   long tTotsplit = 0;
-  for (int i = 0; i < nb_threads; i++)
+  for (int i = 0; i < 0/*nb_threads*/; i++)
   {
     printf ("Time for thread %d :\\t pop :%ld\n",i,(long)tick2usec(wq_time_table[i].tpop));
     tpop += (long)tick2usec(wq_time_table[i].tpop);

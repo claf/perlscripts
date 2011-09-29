@@ -15,7 +15,7 @@
 #include <stdlib.h>
 
 #ifdef C2X_USES_GTG
-# include <GTG.h>
+# include <trace_gtg.h>
 #endif
 
 /* Usefull likely and unlikely for branch prediction */
