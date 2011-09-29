@@ -164,19 +164,19 @@ int main (int argc, char** argv)
   long tTotsplit = 0;
   for (int i = 0; i < 0/*nb_threads*/; i++)
   {
-    printf ("Time for thread %d :\\t pop :%ld\n",i,(long)tick2usec(wq_time_table[i].tpop));
+    printf ("Time for thread %d :\t pop :%ld\n",i,(long)tick2usec(wq_time_table[i].tpop));
     tpop += (long)tick2usec(wq_time_table[i].tpop);
 
-    printf ("Time for thread %d :\\t push :%ld\n",i,(long)tick2usec(wq_time_table[i].tpush));
+    printf ("Time for thread %d :\t push :%ld\n",i,(long)tick2usec(wq_time_table[i].tpush));
     tpush += (long)tick2usec(wq_time_table[i].tpush);
 
-    printf ("Time for thread %d :\\t split :%ld\n",i,(long)tick2usec(wq_time_table[i].tsplit));
+    printf ("Time for thread %d :\t split :%ld\n",i,(long)tick2usec(wq_time_table[i].tsplit));
     tsplit += (long)tick2usec(wq_time_table[i].tsplit);
 
-    printf ("Time for thread %d :\\t Totsplit :%ld\n",i,(long)tick2usec(wq_time_table[i].tTotsplit));
+    printf ("Time for thread %d :\t Totsplit :%ld\n",i,(long)tick2usec(wq_time_table[i].tTotsplit));
     tTotsplit += (long)tick2usec(wq_time_table[i].tTotsplit);
 
-    printf ("Time for thread %d :\\t nb_split :%ld\n",i, wq_time_table[i].nbsplit);
+    printf ("Time for thread %d :\t nb_split :%ld\n",i, wq_time_table[i].nbsplit);
     printf ("--------------------------------\n");
   }
   printf ("Total pop : %ld\n", tpop);
