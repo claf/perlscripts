@@ -22,7 +22,7 @@
 # include "timing.h"
 #endif
 
-#define MAX_COMP_CALL 20000
+#define MAX_COMP_CALL 2000000
 
 work_t work;
 uint64_t epoc = 0;
@@ -162,29 +162,27 @@ int main (int argc, char** argv)
   long tpush = 0;
   long tsplit = 0;
   long tTotsplit = 0;
-  for (int i = 0; i < 0/*nb_threads*/; i++)
+  for (int i = 0; i < nb_threads; i++)
   {
-    printf ("Time for thread %d :\t pop :%ld\n",i,(long)tick2usec(wq_time_table[i].tpop));
     tpop += (long)tick2usec(wq_time_table[i].tpop);
-
-    printf ("Time for thread %d :\t push :%ld\n",i,(long)tick2usec(wq_time_table[i].tpush));
     tpush += (long)tick2usec(wq_time_table[i].tpush);
-
-    printf ("Time for thread %d :\t split :%ld\n",i,(long)tick2usec(wq_time_table[i].tsplit));
     tsplit += (long)tick2usec(wq_time_table[i].tsplit);
-
-    printf ("Time for thread %d :\t Totsplit :%ld\n",i,(long)tick2usec(wq_time_table[i].tTotsplit));
     tTotsplit += (long)tick2usec(wq_time_table[i].tTotsplit);
-
+/*
+    printf ("Time for thread %d :\t pop :%ld\n",i,(long)tick2usec(wq_time_table[i].tpop));
+    printf ("Time for thread %d :\t push :%ld\n",i,(long)tick2usec(wq_time_table[i].tpush));
+    printf ("Time for thread %d :\t split :%ld\n",i,(long)tick2usec(wq_time_table[i].tsplit));
+    printf ("Time for thread %d :\t Totsplit :%ld\n",i,(long)tick2usec(wq_time_table[i].tTotsplit));
     printf ("Time for thread %d :\t nb_split :%ld\n",i, wq_time_table[i].nbsplit);
     printf ("--------------------------------\n");
+*/
   }
   printf ("Total pop : %ld\n", tpop);
   printf ("Total push : %ld\n", tpush);
   printf ("Total splitter : %ld\n", tsplit);
   printf ("Total real splitter : %ld\n", tTotsplit);
 
-  printf ("\n\n*** END ***\n");
+  printf ("\n*** END ***\n");
 #endif
 
   /* Library termination : */
@@ -195,9 +193,11 @@ int main (int argc, char** argv)
   if ( (retval = PAPI_stop(EventSet, values)) != PAPI_OK)
     ERROR_RETURN(retval);
 
-  printf("Total instructions executed are\t%lld \n", values[0] );
-  printf("Total cycles executed are\t%lld \n",values[1]);
-  printf("Total stalled cycles are\t%lld \n",values[2]);
+  printf ("*** PAPI COUNTERS INFOS ***\n\n");
+  printf ("Total instructions executed are\t%lld \n", values[0] );
+  printf ("Total cycles executed are\t%lld \n",values[1]);
+  printf ("Total stalled cycles are\t%lld \n",values[2]);
+  printf ("\n*** END ***\n");
 
   /* free the resources used by PAPI */
   PAPI_shutdown();
