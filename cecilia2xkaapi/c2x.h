@@ -72,7 +72,7 @@ typedef struct {
   volatile c2x_workqueue_index_t beg __attribute__((aligned(64)));
   volatile c2x_workqueue_index_t end __attribute__((aligned(64)));
   c2x_workqueue_index_t size;
-  c2x_workqueue_index_t a_size;
+  volatile c2x_workqueue_index_t a_size;
   pthread_mutex_t lock;
 } c2x_workqueue_t;
 
@@ -119,6 +119,91 @@ static inline void c2x_mem_barrier()
 }
 
 /* Workqueue stuffs : */
+
+#ifdef C2X_USE_LOCKFREE
+
+static inline int c2x_workqueue_init (c2x_workqueue_t* kwq, c2x_workqueue_index_t size)
+{
+  c2x_mem_barrier();
+  pthread_mutex_init (&kwq->lock, NULL);
+#if defined(__i386__)||defined(__x86_64)||defined(__powerpc64__)||defined(__powerpc__)||defined(__ppc__)
+  c2x_assert_debug( (((unsigned long)&kwq->beg) & (sizeof(c2x_workqueue_index_t)-1)) == 0 );
+  c2x_assert_debug( (((unsigned long)&kwq->end) & (sizeof(c2x_workqueue_index_t)-1)) == 0 );
+#else
+#  error "May be alignment constraints exit to garantee atomic read write"
+#endif
+  kwq->beg    = 0;
+  kwq->end    = 0;
+  kwq->size   = size + 1;
+  kwq->a_size = 0;
+  return 0;
+}
+
+/* the push operation increments kwq->end. */
+static inline int c2x_push(work_t *work, component_call_t* value)
+{
+  c2x_workqueue_t *kwq = &(work->wq);
+  pthread_mutex_lock (&kwq->lock);
+
+  PC2X("PUSH IN beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
+
+  /* The queue is full : */
+  if (kwq->a_size == kwq->size - 1)
+  {
+    PC2X("QUEUE FULL!!! %d\n", kwq->a_size);
+    pthread_mutex_unlock (&kwq->lock);
+    return -1;
+  }
+
+  work->array[kwq->beg] = value;
+  c2x_mem_barrier ();
+  kwq->beg = (kwq->beg + 1) % (kwq->size - 1);
+  __sync_add_and_fetch (&kwq->a_size, 1);
+
+  PC2X("PUSH OUT beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
+  pthread_mutex_unlock (&kwq->lock);
+
+  return 1;
+}
+
+static inline int c2x_workqueue_size (c2x_workqueue_t* kwq)
+{
+  return kwq->a_size;
+}
+
+/** This function should only be called into a splitter to ensure correctness
+    the lock of the victim kprocessor is assumed to be locked to handle conflict.
+    Return 0 in case of success 
+    Return ERANGE if the queue is empty or less than requested size.
+
+    The steal operation decrement beg.
+ */
+static inline int c2x_workqueue_steal(
+  c2x_workqueue_t* kwq,
+  c2x_workqueue_index_t *beg,
+  c2x_workqueue_index_t *end,
+  c2x_workqueue_index_t size
+)
+{
+  /* Not enought : */
+  if (size > c2x_workqueue_size (kwq))
+  {
+    return -1;
+  }
+
+
+  *beg = kwq->end;
+  kwq->end = (kwq->end + size - 1) % (kwq->size - 1);
+  *end = kwq->end;
+  kwq->end = (kwq->end + 1) % (kwq->size - 1);
+  __sync_fetch_and_sub (&kwq->a_size, size);
+  PC2X("STEAL reply beg : %d\tend : %d\n", *beg, *end);
+  PC2X("STEAL queue beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
+
+  return 1;
+}
+
+#else // C2X_USE_LOCKFREE
 
 static inline int c2x_workqueue_init (c2x_workqueue_t* kwq, c2x_workqueue_index_t size) 
 {
@@ -293,5 +378,7 @@ static inline int c2x_workqueue_steal(
 
   return -1;
 }  
+
+#endif // C2X_USE_LOCKFREE
 
 #endif //_HAVE_C2X_H
