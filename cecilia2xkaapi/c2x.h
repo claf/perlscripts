@@ -120,7 +120,7 @@ static inline void c2x_mem_barrier()
 
 /* Workqueue stuffs : */
 
-#ifdef C2X_USE_LOCKFREE
+#ifdef C2X_USES_LOCKFREE
 
 static inline int c2x_workqueue_init (c2x_workqueue_t* kwq, c2x_workqueue_index_t size)
 {
@@ -203,7 +203,7 @@ static inline int c2x_workqueue_steal(
   return 1;
 }
 
-#else // C2X_USE_LOCKFREE
+#else // C2X_USES_LOCKFREE
 
 static inline int c2x_workqueue_init (c2x_workqueue_t* kwq, c2x_workqueue_index_t size) 
 {
@@ -379,6 +379,6 @@ static inline int c2x_workqueue_steal(
   return -1;
 }  
 
-#endif // C2X_USE_LOCKFREE
+#endif // C2X_USES_LOCKFREE
 
 #endif //_HAVE_C2X_H
