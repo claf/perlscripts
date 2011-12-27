@@ -1,3 +1,5 @@
+#TODO : cible make diff pour voir les diff avec la version installée
+
 test:
 	./c2x -v
 #	./c2x -s test_splitter -i toto.h dest_test src_test

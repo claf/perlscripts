@@ -5,13 +5,18 @@ use warnings;
 use File::Copy;
 use Getopt::Std;
 
-my $VER_NUM="0.9.1 adapt";
+my $VER_NUM="0.9.2 adapt priority";
 my @progpath=split (/\//, $0);
 my $PROGNAME=$progpath[-1];
 
 sub print_usage()
 {
-  print "Usage : $PROGNAME output_directory file_1.c [file_2.c ...]\n";
+  print "Usage : $PROGNAME [-Vvh] [-i header] [-s splitter] output_directory file_1.c [file_2.c ...]\n";
+  print "\t-V\tverbose\n"
+  print "\t-i\tinclude header containing every definition used in methods prototypes\n"
+  print "\t-v\tversion number\n"
+  print "\t-h\tprint this help\n"
+  print "\t-s\tsplitter function called when stealing\n"
   exit ();
 }
 
