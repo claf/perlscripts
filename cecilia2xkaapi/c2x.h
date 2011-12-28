@@ -89,8 +89,10 @@ typedef struct component_call
 /* Work struct that contains the workqueue and an array of component_call_t : */
 typedef struct work
 {
-  c2x_workqueue_t wq;
-  component_call_t** array;
+  c2x_workqueue_t wq_1;
+  component_call_t** array_1;
+  c2x_workqueue_t wq_2;
+  component_call_t** array_2;
 } work_t;
 
 extern work_t work;
@@ -99,6 +101,8 @@ extern work_t work;
 typedef struct thief_work_t {
   c2x_workqueue_index_t beg;
   c2x_workqueue_index_t end;
+  component_call_t** array;
+  c2x_workqueue_t* wq;
 } thief_work_t;
 
 /* Splitters : */
@@ -140,9 +144,15 @@ static inline int c2x_workqueue_init (c2x_workqueue_t* kwq, c2x_workqueue_index_
 }
 
 /* the push operation increments kwq->end. */
-static inline int c2x_push(work_t *work, component_call_t* value)
+static inline int c2x_push(work_t *work, component_call_t* value, int priority)
 {
-  c2x_workqueue_t *kwq = &(work->wq);
+  c2x_workqueue_t *kwq;
+
+  if (priority == 1)
+    kwq = &(work->wq_1);
+  else
+    kwq = &(work->wq_2);
+
   pthread_mutex_lock (&kwq->lock);
 
   PC2X("PUSH IN beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
@@ -155,7 +165,11 @@ static inline int c2x_push(work_t *work, component_call_t* value)
     return -1;
   }
 
-  work->array[kwq->beg] = value;
+  if (priority == 1)
+    work->array_1[kwq->beg] = value;
+  else
+    work->array_2[kwq->beg] = value;
+
   c2x_mem_barrier ();
   kwq->beg = (kwq->beg + 1) % (kwq->size - 1);
   __sync_add_and_fetch (&kwq->a_size, 1);
@@ -264,9 +278,15 @@ static inline int c2x_workqueue_push (c2x_workqueue_t* kwq)
   return -1;
 }
 
-static inline int c2x_push(work_t *work, component_call_t* value)
+static inline int c2x_push(work_t *work, component_call_t* value, int priority)
 {
-  c2x_workqueue_t *kwq = &(work->wq);
+  c2x_workqueue_t *kwq;
+
+  if (priority == 1)
+    kwq = &(work->wq_1);
+  else
+    kwq = &(work->wq_2);
+
   int ret = 0;
 
   pthread_mutex_lock (&kwq->lock); 
@@ -276,7 +296,11 @@ static inline int c2x_push(work_t *work, component_call_t* value)
     pthread_mutex_unlock (&kwq->lock);
     return -1;
   } else {
-    work->array[ret] = value;
+    if (priority == 1)
+      work->array_1[ret] = value;
+    else
+      work->array_2[ret] = value;
+
     pthread_mutex_unlock (&kwq->lock);
     return 0;
   }

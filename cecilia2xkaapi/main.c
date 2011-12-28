@@ -41,8 +41,10 @@ int main (int argc, char** argv)
   kaapi_stealcontext_t* sc;
 
   /* WorkQueue initialization : */
-  work.array = (component_call_t **) malloc (sizeof (component_call_t*) * MAX_COMP_CALL * 2);
-  c2x_workqueue_init (&work.wq, MAX_COMP_CALL * 2);
+  work.array_1 = (component_call_t **) malloc (sizeof (component_call_t*) * MAX_COMP_CALL * 2);
+  work.array_2 = (component_call_t **) malloc (sizeof (component_call_t*) * MAX_COMP_CALL * 2);
+  c2x_workqueue_init (&work.wq_1, MAX_COMP_CALL * 2);
+  c2x_workqueue_init (&work.wq_2, MAX_COMP_CALL * 2);
 
 #ifdef C2X_USES_TIMING
   /* Timing lib. initialisation : */
@@ -206,7 +208,8 @@ int main (int argc, char** argv)
   /* Free some stuff : */
   // TODO : destroy or not?
   //c2x_workqueue_destroy (&work.wq);
-  free (work.array);
+  free (work.array_1);
+  free (work.array_2);
   free (args);
 
 #ifdef C2X_USES_TIMING

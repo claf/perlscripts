@@ -30,6 +30,7 @@ static void thief_entrypoint
 
   int beg = t_work->beg;
   int end = t_work->end;
+  
 
   PC2X ("Executing %d from [%d;%d]\n", beg, t_work->beg, t_work->end);
 
@@ -41,18 +42,19 @@ static void thief_entrypoint
     //free ici ?
 
     /* Actually call the component methode : */
-    work.array[beg]->meth (work.array[beg]->args);
+    //work.array[beg]->meth (work.array[beg]->args);
+    t_work->array[beg]->meth (t_work->array[beg]->args);
 
     /* Free */
-    free (work.array[beg]->args);
-    free (work.array[beg]);
+    free (t_work->array[beg]->args);
+    free (t_work->array[beg]);
 
     /* update */
     if (beg == end)
     {
       break;
     } else {
-      beg = (beg + 1) % work.wq.size;
+      beg = (beg + 1) % t_work->wq->size;
     }
   }
 
@@ -82,7 +84,17 @@ int splitter
   //doState ("Sp");
 
   /* victim workqueue : */
+  int priority = 1;
   work_t* const vw = (work_t*) args;
+  c2x_workqueue_t* wq;
+
+  if (c2x_workqueue_size(&vw->wq_1) > 0) {
+    priority = 1;
+    wq = &vw->wq_1;
+  } else {
+    priority = 2;
+    wq = &vw->wq_2;
+  }
 
   /* stolen range */
   c2x_workqueue_index_t i, j;
@@ -96,7 +108,7 @@ int splitter
 
  redo_steal:
   /* do not steal if range size <= PAR_GRAIN */
-  range_size = c2x_workqueue_size(&vw->wq);
+  range_size = c2x_workqueue_size(wq);
   if (range_size == 1)
   {
     nreq = 1;
@@ -130,7 +142,7 @@ split:
 #ifdef C2X_USES_TIMING
   GET_TICK(tp1);
 #endif
-  ret = c2x_workqueue_steal(&vw->wq, &i, &j, nreq /** unit_size*/);
+  ret = c2x_workqueue_steal(wq, &i, &j, nreq /** unit_size*/);
 #ifdef C2X_USES_TIMING
   GET_TICK(tp2);
   wq_time_table[c2x_tid].tpop += TICK_RAW_DIFF(tp1,tp2);
@@ -139,7 +151,7 @@ split:
   if (ret == -1)
     goto redo_steal;
 
-  for (; nreq; --nreq, ++req, ++nrep, i = (i + 1) % work.wq.size/*unit_size*/)
+  for (; nreq; --nreq, ++req, ++nrep, i = (i + 1) % work.wq_2.size/*unit_size*/)
   {
 
     /* for reduction, a result is needed. take care of initializing it */
@@ -151,6 +163,13 @@ split:
       ( sc, req, (kaapi_task_body_t)thief_entrypoint, sizeof(thief_work_t), NULL/*ktr*/ );
     tw->beg = i /*- unit_size + 1*/;
     tw->end = i;
+    if (priority == 1) {
+      tw->array = work.array_1;
+      tw->wq = &(work.wq_1);
+    } else {
+      tw->array = work.array_2;
+      tw->wq = &(work.wq_2);
+    }
 
     /* initialize ktr task may be preempted before entrypoint */
     //((thief_work_t*)ktr->data)->beg = tw->beg;
@@ -172,6 +191,7 @@ split:
   return nrep;
 }
 
+// TODO : splitter_N doesn't have priority implementation yet
 int splitter_N
 (kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args)
 {
@@ -190,7 +210,7 @@ int splitter_N
 
  redo_steal:
   /* do not steal if range size <= PAR_GRAIN */
-  range_size = c2x_workqueue_size(&vw->wq);
+  range_size = c2x_workqueue_size(&vw->wq_2);
   if (range_size == 0)
   {
     return 0;
@@ -205,10 +225,10 @@ int splitter_N
   /* perform the actual steal. if the range
      changed size in between, redo the steal
    */
-  if (c2x_workqueue_steal(&vw->wq, &i, &j, nreq *  unit_size) == -1)
+  if (c2x_workqueue_steal(&vw->wq_2, &i, &j, nreq *  unit_size) == -1)
     goto redo_steal;
 
-  for (; nreq; --nreq, ++req, ++nrep, i = (i + unit_size) % work.wq.size)
+  for (; nreq; --nreq, ++req, ++nrep, i = (i + unit_size) % work.wq_2.size)
   {
     c2x_assert_debug (j != -1);
 
@@ -220,7 +240,9 @@ int splitter_N
     thief_work_t* const tw = kaapi_reply_init_adaptive_task
       ( sc, req, (kaapi_task_body_t)thief_entrypoint, sizeof(thief_work_t), NULL/*ktr*/ );
     tw->beg = i;
-    tw->end = (i + unit_size - 1) % work.wq.size;
+    tw->end = (i + unit_size - 1) % work.wq_2.size;
+
+    //TODO : priority to add (wq and array pointers)
 
     /* initialize ktr task may be preempted before entrypoint */
     //((thief_work_t*)ktr->data)->beg = tw->beg;

@@ -12,11 +12,11 @@ my $PROGNAME=$progpath[-1];
 sub print_usage()
 {
   print "Usage : $PROGNAME [-Vvh] [-i header] [-s splitter] output_directory file_1.c [file_2.c ...]\n";
-  print "\t-V\tverbose\n"
-  print "\t-i\tinclude header containing every definition used in methods prototypes\n"
-  print "\t-v\tversion number\n"
-  print "\t-h\tprint this help\n"
-  print "\t-s\tsplitter function called when stealing\n"
+  print "\t-V\tverbose\n";
+  print "\t-i\tinclude header containing every definition used in methods prototypes\n";
+  print "\t-v\tversion number\n";
+  print "\t-h\tprint this help\n";
+  print "\t-s\tsplitter function called when stealing\n";
   exit ();
 }
 
@@ -307,7 +307,7 @@ EOP
 
       print FILEOUT "  data_".$taskId."->meth = (methode_t) ".$function."_body;\n";
       print FILEOUT "  data_".$taskId."->args = ".$function."_args;\n";
-      print FILEOUT "  c2x_push (&work, data_$taskId);\n";
+      print FILEOUT "  c2x_push (&work, data_$taskId, 2);\n";
 
       print FILEOUT "#ifdef C2X_USES_TIMING\n";
       print FILEOUT "  GET_TICK (t2_$taskId);\n";
