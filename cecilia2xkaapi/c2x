@@ -307,6 +307,7 @@ EOP
 
       print FILEOUT "  data_".$taskId."->meth = (methode_t) ".$function."_body;\n";
       print FILEOUT "  data_".$taskId."->args = ".$function."_args;\n";
+      # TODO : default priority (2) is hardcoded ...
       print FILEOUT "  c2x_push (&work, data_$taskId, 2);\n";
 
       print FILEOUT "#ifdef C2X_USES_TIMING\n";
