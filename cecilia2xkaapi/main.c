@@ -38,7 +38,7 @@ int main (int argc, char** argv)
   int UNUSED (nb_threads);
   main_arg_t* args;
   kaapi_thread_t* thread;
-  kaapi_stealcontext_t* sc;
+  struct kaapi_stealcontext_t* sc;
 
   /* WorkQueue initialization : */
   work.array_1 = (component_call_t **) malloc (sizeof (component_call_t*) * MAX_COMP_CALL * 2);

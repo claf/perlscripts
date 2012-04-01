@@ -20,7 +20,7 @@ __thread int c2x_tid = -1;
 
 /* entrypoint */
 static void thief_entrypoint
-(void* args, kaapi_thread_t* thread, kaapi_stealcontext_t* sc)
+(void* args, kaapi_thread_t* thread, struct kaapi_stealcontext_t* sc)
 {
   //TODO mettre ces fonctions dans un fichier avec C2X
   //doState ("Te");
@@ -64,7 +64,7 @@ static void thief_entrypoint
 
 
 int splitter
-(kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args)
+(struct kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args)
 {
   int ret, real_nreq = nreq;
 
@@ -191,9 +191,15 @@ split:
   return nrep;
 }
 
+
+
+
+
+
+
 // TODO : splitter_N doesn't have priority implementation yet
 int splitter_N
-(kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args)
+(struct kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args)
 {
   /* victim workqueue : */
   work_t* const vw = (work_t*) args;
