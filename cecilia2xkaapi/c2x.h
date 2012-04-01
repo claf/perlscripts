@@ -48,6 +48,12 @@
 #define PC2X(format, ...)
 #endif
 
+
+
+
+
+
+
 extern __thread int c2x_tid;
 
 #ifdef C2X_USES_TIMING
@@ -124,8 +130,6 @@ static inline void c2x_mem_barrier()
 
 /* Workqueue stuffs : */
 
-#ifdef C2X_USES_LOCKFREE
-
 static inline int c2x_workqueue_init (c2x_workqueue_t* kwq, c2x_workqueue_index_t size)
 {
   c2x_mem_barrier();
@@ -142,6 +146,7 @@ static inline int c2x_workqueue_init (c2x_workqueue_t* kwq, c2x_workqueue_index_
   kwq->a_size = 0;
   return 0;
 }
+
 
 /* the push operation increments kwq->end. */
 static inline int c2x_push(work_t *work, component_call_t* value, int priority)
@@ -216,193 +221,5 @@ static inline int c2x_workqueue_steal(
 
   return 1;
 }
-
-#else // C2X_USES_LOCKFREE
-
-static inline int c2x_workqueue_init (c2x_workqueue_t* kwq, c2x_workqueue_index_t size) 
-{
-  c2x_mem_barrier();
-  pthread_mutex_init (&kwq->lock, NULL);
-#if defined(__i386__)||defined(__x86_64)||defined(__powerpc64__)||defined(__powerpc__)||defined(__ppc__)
-  c2x_assert_debug( (((unsigned long)&kwq->beg) & (sizeof(c2x_workqueue_index_t)-1)) == 0 );
-  c2x_assert_debug( (((unsigned long)&kwq->end) & (sizeof(c2x_workqueue_index_t)-1)) == 0 );
-#else
-#  error "May be alignment constraints exit to garantee atomic read write"
-#endif
-  kwq->beg    = -1;
-  kwq->end    = 0;
-  kwq->size   = size;
-  kwq->a_size = 0;
-  return 0;
-}
-
-
-/* the push operation increments kwq->end. */
-static inline int c2x_workqueue_push (c2x_workqueue_t* kwq)
-{   
-  PC2X("beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
-
-  /* The queue is full : */
-  if( (kwq->beg == 0 && kwq->end == kwq->size - 1) || (kwq->beg == kwq->end + 1) )
-  {
-    PC2X("QUEUE FULL!!! %d\n", kwq->a_size);
-    return -1;
-  }
-
-  /* The queue is empty : */
-  if (kwq->beg == -1)
-  {
-    //mfence?
-    kwq->beg = kwq->end;
-    kwq->a_size += 1;
-    PC2X("return\tbeg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
-    return kwq->end;
-  }
-
-  /* Last position of the queue : */
-  if(kwq->end == kwq->size - 1)
-  {
-    //mfence?
-    kwq->end = 0;
-    kwq->a_size += 1;
-    PC2X("return\tbeg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
-    return 0;
-  } else {
-    //mfence?
-    kwq->end += 1;
-    kwq->a_size += 1;
-    PC2X("return\tbeg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
-    return kwq->end;
-  }
-
-  return -1;
-}
-
-static inline int c2x_push(work_t *work, component_call_t* value, int priority)
-{
-  c2x_workqueue_t *kwq;
-
-  if (priority == 1)
-    kwq = &(work->wq_1);
-  else
-    kwq = &(work->wq_2);
-
-  int ret = 0;
-
-  pthread_mutex_lock (&kwq->lock); 
-  ret = c2x_workqueue_push (kwq);
-  if (ret == -1)
-  {
-    pthread_mutex_unlock (&kwq->lock);
-    return -1;
-  } else {
-    if (priority == 1)
-      work->array_1[ret] = value;
-    else
-      work->array_2[ret] = value;
-
-    pthread_mutex_unlock (&kwq->lock);
-    return 0;
-  }
-}
-
-static inline int c2x_workqueue_size (c2x_workqueue_t* kwq)
-{
-  return kwq->a_size;
-
-  /* workqueue is empty : 
-  int ret = 0;
-  if (unlikely (kwq->beg == -1))
-  {
-    return 0;
-  }
-
-  if (kwq->beg < kwq->end)
-  {
-    ret = kwq->end - kwq->beg + 1;
-    printf("Size : %d\n", kwq->end - kwq->beg + 1);
-    pthread_mutex_unlock (&kwq->lock);
-    return ret;
-  } else {
-    // TODO : is it the right value ?
-    pthread_mutex_lock (&kwq->lock);
-    ret = kwq->end + (kwq->size - kwq->beg) + 1;
-    printf("Size : %d\n", ret);
-    pthread_mutex_unlock (&kwq->lock);
-    return ret;
-  }*/
-}
-
-/** This function should only be called into a splitter to ensure correctness
-    the lock of the victim kprocessor is assumed to be locked to handle conflict.
-    Return 0 in case of success 
-    Return ERANGE if the queue is empty or less than requested size.
-
-    The steal operation decrement beg.
- */
-static inline int c2x_workqueue_steal(
-  c2x_workqueue_t* kwq, 
-  c2x_workqueue_index_t *beg, 
-  c2x_workqueue_index_t *end, 
-  c2x_workqueue_index_t size 
-)
-{
-  pthread_mutex_lock (&kwq->lock);
-  /* Not enought : */
-  if (size > c2x_workqueue_size (kwq))
-  {
-    pthread_mutex_unlock (&kwq->lock);
-    return -1;
-  }
-
-
-  PC2X("beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
-
-  /* Now the workqueue is empty : */
-  if (size == c2x_workqueue_size (kwq))
-  {
-    *end = kwq->end;
-    *beg = kwq->beg;
-
-    kwq->end = (kwq->end + 1) % kwq->size;
-    kwq->beg = -1;
-    kwq->a_size = 0;
-    PC2X("return\tbeg : %d\tend : %d\tb : %d\te : %d\n", kwq->beg, kwq->end, *beg, *end);
-    pthread_mutex_unlock (&kwq->lock);
-
-    return 0;
-  }
-
-  if (kwq->beg < kwq->end)
-  {
-    *beg = kwq->beg;
-    *end = kwq->beg + size - 1;
-    kwq->beg = *end + 1;
-
-    kwq->a_size -= size;
-
-    PC2X("return\tbeg : %d\tend : %d\tb : %d\te : %d\n", kwq->beg, kwq->end, *beg, *end);
-    pthread_mutex_unlock (&kwq->lock);
-
-    return 0;
-  } else {
-    *beg = kwq->beg;
-    *end = ( kwq->beg + size - 1) % kwq->size;
-    kwq->beg = (*end + 1) % kwq->size;
-
-    kwq->a_size -= size;
-
-    PC2X("return\tbeg : %d\tend : %d\tb : %d\te : %d\n", kwq->beg, kwq->end, *beg, *end);
-    pthread_mutex_unlock (&kwq->lock);
-
-    return 0;
-  }
-
-  pthread_mutex_unlock (&kwq->lock);
-
-  return -1;
-}  
-
-#endif // C2X_USES_LOCKFREE
 
 #endif //_HAVE_C2X_H
