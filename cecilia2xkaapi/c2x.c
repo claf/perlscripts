@@ -20,7 +20,7 @@ __thread int c2x_tid = -1;
 
 /* entrypoint */
 static void thief_entrypoint
-(void* args, kaapi_thread_t* thread, struct kaapi_stealcontext_t* sc)
+(void* args, kaapi_thread_t* thread, kaapi_task_t* pc)
 {
   //TODO mettre ces fonctions dans un fichier avec C2X
   //doState ("Te");
@@ -63,9 +63,14 @@ static void thief_entrypoint
 }
 
 
-int splitter
-(struct kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args)
+int splitter(
+  struct kaapi_task_t*                 victim_task,
+  void*                                args,
+  struct kaapi_listrequest_t*          lr, 
+  struct kaapi_listrequest_iterator_t* lri
+)
 {
+  int nreq = kaapi_listrequest_iterator_count(lri);
   int ret, real_nreq = nreq;
 
   if (unlikely (c2x_tid == -1))
@@ -79,9 +84,6 @@ int splitter
   tick_t ts1,ts2,tp1,tp2;
   GET_TICK(ts1);
 #endif
-
-  // TODO séparer les valeurs de C2X et celles de MJPEG dans cette structure:
-  //doState ("Sp");
 
   /* victim workqueue : */
   int priority = 1;
@@ -151,16 +153,15 @@ split:
   if (ret == -1)
     goto redo_steal;
 
-  for (; nreq; --nreq, ++req, ++nrep, i = (i + 1) % work.wq_2.size/*unit_size*/)
+  for ( /* void */; 
+      (nreq || !kaapi_listrequest_iterator_empty(lri));
+      --nreq, ++nrep, i = (i + 1) % work.wq_2.size/*unit_size*/, kaapi_listrequest_iterator_next(lr, lri)
+      )  
   {
+    kaapi_request_t* req = kaapi_listrequest_iterator_get(lr, lri);
 
-    /* for reduction, a result is needed. take care of initializing it */
-    //kaapi_taskadaptive_result_t* const ktr =
-    //  kaapi_allocate_thief_result(req, sizeof(thief_work_t), NULL);
+    thief_work_t* const tw = kaapi_request_pushdata(req, sizeof(thief_work_t) );
 
-    /* thief work: not adaptive result because no preemption is used here  */
-    thief_work_t* const tw = kaapi_reply_init_adaptive_task
-      ( sc, req, (kaapi_task_body_t)thief_entrypoint, sizeof(thief_work_t), NULL/*ktr*/ );
     tw->beg = i /*- unit_size + 1*/;
     tw->end = i;
     if (priority == 1) {
@@ -169,16 +170,20 @@ split:
     } else {
       tw->array = work.array_2;
       tw->wq = &(work.wq_2);
-    }
+    }   
 
-    /* initialize ktr task may be preempted before entrypoint */
-    //((thief_work_t*)ktr->data)->beg = tw->beg;
-    //((thief_work_t*)ktr->data)->end = tw->end;
-    //((thief_work_t*)ktr->data)->res = 0.f;
+    kaapi_task_init_with_flag(
+        kaapi_request_toptask(req),
+        (kaapi_task_body_t)thief_entrypoint,
+        tw,
+        KAAPI_TASK_UNSTEALABLE
+        );  
 
-    /* reply head, preempt head */
-    PC2X ("Reply interval [%d;%d]\n", tw->beg, tw->end);
-    kaapi_reply_pushhead_adaptive_task(sc, req);
+    kaapi_request_pushtask(
+        req,
+        victim_task
+        );  
+
   }
 
   //doState ("Xk");
@@ -196,7 +201,7 @@ split:
 
 
 
-
+#if 0
 // TODO : splitter_N doesn't have priority implementation yet
 int splitter_N
 (struct kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args)
@@ -262,4 +267,4 @@ int splitter_N
 
   return nrep;
 }
-
+#endif
