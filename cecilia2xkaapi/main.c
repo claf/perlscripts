@@ -142,7 +142,12 @@ int main (int argc, char** argv)
   epoc = start.tv_sec * 1000000 + start.tv_usec;
 
   /* Push an adaptive task : */
-  sc = kaapi_task_begin_adaptive (thread, KAAPI_SC_CONCURRENT, $splitter, &work);
+  sc = kaapi_task_begin_adaptive (
+      thread,
+      KAAPI_SC_CONCURRENT | KAAPI_SC_NOPREEMPTION,
+      $splitter,
+      &work
+      );
 
   /* Now let's do the work! */
   args = (main_arg_t*) malloc (sizeof (main_arg_t));

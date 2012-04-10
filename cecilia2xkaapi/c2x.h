@@ -112,8 +112,14 @@ typedef struct thief_work_t {
 } thief_work_t;
 
 /* Splitters : */
-int splitter (struct kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args);
-int splitter_N (struct kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args);
+int splitter (
+    struct kaapi_task_t*                 victim_task,
+    void*                                args,
+    struct kaapi_listrequest_t*          lr,
+    struct kaapi_listrequest_iterator_t* lri
+    );
+
+//int splitter_N (struct kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args);
 
 /* Memory fence : should be both read & write barrier */
 static inline void c2x_mem_barrier()  
