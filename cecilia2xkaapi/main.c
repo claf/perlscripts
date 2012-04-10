@@ -38,7 +38,7 @@ int main (int argc, char** argv)
   int UNUSED (nb_threads);
   main_arg_t* args;
   kaapi_thread_t* thread;
-  struct kaapi_stealcontext_t* sc;
+  void* sc;
 
   /* WorkQueue initialization : */
   work.array_1 = (component_call_t **) malloc (sizeof (component_call_t*) * MAX_COMP_CALL * 2);
@@ -52,7 +52,7 @@ int main (int argc, char** argv)
 #endif //C2X_USES_TIMING
 
   /* Library initialization : */
-  kaapi_init (&argc, &argv);
+  kaapi_init (1, &argc, &argv);
   nb_threads = kaapi_getconcurrency();
   thread = kaapi_self_thread ();
 

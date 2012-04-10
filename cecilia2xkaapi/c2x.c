@@ -16,33 +16,25 @@
 
 #define CONFIG_PAR_GRAIN 1
 
+/* per thread identifier */
 __thread int c2x_tid = -1;
 
 /* entrypoint */
 static void thief_entrypoint
 (void* args, kaapi_thread_t* thread, struct kaapi_stealcontext_t* sc)
 {
-  //TODO mettre ces fonctions dans un fichier avec C2X
-  //doState ("Te");
-  
   /* input work */
   thief_work_t* const t_work = (thief_work_t*) args;
 
   int beg = t_work->beg;
   int end = t_work->end;
-  
-
-  PC2X ("Executing %d from [%d;%d]\n", beg, t_work->beg, t_work->end);
 
   c2x_assert_debug ((beg != -1) && (end != -1));
+  PC2X ("Executing %d from [%d;%d]\n", beg, t_work->beg, t_work->end);
 
   while (1)
   {
-    //TODO : un pool de structure serait'il mieux que du malloc dans fetch et du
-    //free ici ?
-
     /* Actually call the component methode : */
-    //work.array[beg]->meth (work.array[beg]->args);
     t_work->array[beg]->meth (t_work->array[beg]->args);
 
     /* Free */
