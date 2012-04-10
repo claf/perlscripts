@@ -19,7 +19,7 @@
 /* per thread identifier */
 __thread int c2x_tid = -1;
 
-/* entrypoint */
+/* Thief Entrypoint */
 static void thief_entrypoint
 (void* args, kaapi_thread_t* thread, kaapi_task_t* pc)
 {
