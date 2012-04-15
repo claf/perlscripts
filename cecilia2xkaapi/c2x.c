@@ -146,13 +146,25 @@ split:
     goto redo_steal;
 
   for ( /* void */; 
-      (nreq || !kaapi_listrequest_iterator_empty(lri));
-      --nreq, ++nrep, i = (i + 1) % work.wq_2.size/*unit_size*/, kaapi_listrequest_iterator_next(lr, lri)
+      ((nreq != 0) && !kaapi_listrequest_iterator_empty(lri));
+      --nreq, ++nrep, i = (i + 1) % work.wq_2.size/*unit_size*/
       )  
   {
     kaapi_request_t* req = kaapi_listrequest_iterator_get(lr, lri);
 
+    if (req == 0)
+    {
+      printf ("NULL REQUEST\tnreq %d; nrep %d; i %d; j %d\n", nreq, nrep, i, j);
+      abort ();
+    }
+
     thief_work_t* const tw = kaapi_request_pushdata(req, sizeof(thief_work_t) );
+
+    if (tw == 0)
+    {
+      printf ("NULL DATA POINTER\n");
+      abort ();
+    }
 
     tw->beg = i /*- unit_size + 1*/;
     tw->end = i;
@@ -168,14 +180,29 @@ split:
         kaapi_request_toptask(req),
         (kaapi_task_body_t)thief_entrypoint,
         tw,
-        KAAPI_TASK_UNSTEALABLE
+        KAAPI_TASK_UNSTEALABLE && KAAPI_TASK_S_CONCURRENT && KAAPI_TASK_S_NOPREEMPTION
         );  
 
-    kaapi_request_pushtask(
-        req,
-        victim_task
-        );  
+    int result = kaapi_request_pushtask(
+              req,
+              victim_task
+              );
 
+    if (result == EINVAL)
+    {
+      printf ("BAD STACK POINTER\n");
+      abort ();
+    }
+
+    result = kaapi_request_committask(req);
+
+    if (result == EINVAL)
+    {
+      printf ("BAD REQUEST POINTER\n");
+      abort ();
+    } 
+
+    kaapi_listrequest_iterator_next(lr, lri);
   }
 
   //doState ("Xk");
