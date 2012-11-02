@@ -156,7 +156,7 @@ int main (int argc, char** argv)
   main_body (args);
 
   /* Wait for thieves : */
-  kaapi_task_end_adaptive (sc);
+  kaapi_task_end_adaptive (thread, sc);
 
 #ifdef C2X_USES_GTG
   /* Trace writing */

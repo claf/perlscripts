@@ -119,6 +119,13 @@ int splitter (
     struct kaapi_listrequest_iterator_t* lri
     );
 
+int splitter_half (
+    struct kaapi_task_t*                 victim_task,
+    void*                                args,
+    struct kaapi_listrequest_t*          lr,
+    struct kaapi_listrequest_iterator_t* lri
+    );
+
 //int splitter_N (struct kaapi_stealcontext_t* sc, int nreq, kaapi_request_t* req, void* args);
 
 /* Memory fence : should be both read & write barrier */
@@ -166,7 +173,7 @@ static inline int c2x_push(work_t *work, component_call_t* value, int priority)
 
   pthread_mutex_lock (&kwq->lock);
 
-  PC2X("PUSH IN beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
+  //PC2X("PUSH IN beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
 
   /* The queue is full : */
   if (kwq->a_size == kwq->size - 1)
@@ -185,7 +192,8 @@ static inline int c2x_push(work_t *work, component_call_t* value, int priority)
   kwq->beg = (kwq->beg + 1) % (kwq->size - 1);
   __sync_add_and_fetch (&kwq->a_size, 1);
 
-  PC2X("PUSH OUT beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
+  //PC2X("PUSH OUT beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
+  PC2X ("%d elements in the WQ_%d, [ %d ; %d ]\n", kwq->a_size, priority, kwq->beg, kwq->end);
   pthread_mutex_unlock (&kwq->lock);
 
   return 1;
@@ -222,8 +230,8 @@ static inline int c2x_workqueue_steal(
   *end = kwq->end;
   kwq->end = (kwq->end + 1) % (kwq->size - 1);
   __sync_fetch_and_sub (&kwq->a_size, size);
-  PC2X("STEAL reply beg : %d\tend : %d\n", *beg, *end);
-  PC2X("STEAL queue beg : %d\tend : %d\tsize : %d\n", kwq->beg, kwq->end, kwq->a_size);
+  PC2X("return [ %d ; %d ], main wq with %d elements [ %d ; %d ]\n",
+      *beg, *end, kwq->a_size, kwq->beg, kwq->end);
 
   return 1;
 }
